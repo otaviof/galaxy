@@ -1,0 +1,31 @@
+---
+galaxy:
+  namespaces:
+    baseDir: ../../test/namespaces
+    extensions:
+      - yaml
+      - secret
+    names:
+      - ns1
+      - ns2
+      - ns3
+      - ns4
+  environments:
+    - name: dev
+      skipOnNamespaces:
+        - ns2
+      fileSuffixes:
+        - d
+        - ""
+      transform:
+        namespaceSuffix: d
+        releasePrefix: d-${NAMESPACE}-
+    - name: tst
+      skipOnNamespaces:
+        - ns1
+      fileSuffixes:
+        - t
+        - ""
+      transform:
+        namespaceSuffix: t
+        releasePrefix: t-${NAMESPACE}-
