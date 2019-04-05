@@ -12,14 +12,14 @@ galaxy:
       - ns4
   environments:
     - name: dev
-      skipOnNamespaces:
-        - ns2
+      onlyOnNamespaces:
+        - ns1
       fileSuffixes:
         - d
         - ""
       transform:
-        namespaceSuffix: d
-        releasePrefix: d-${NAMESPACE}-
+        namespaceSuffix: -d
+        releasePrefix: ${NAMESPACE_SUFFIX:1}-${NAMESPACE}-
     - name: tst
       skipOnNamespaces:
         - ns1
@@ -27,5 +27,5 @@ galaxy:
         - t
         - ""
       transform:
-        namespaceSuffix: t
-        releasePrefix: t-${NAMESPACE}-
+        namespaceSuffix: -t
+        releasePrefix: ${NAMESPACE_SUFFIX:1}-${NAMESPACE}-
