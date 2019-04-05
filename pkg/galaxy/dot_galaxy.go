@@ -1,7 +1,7 @@
 package galaxy
 
 import (
-	"errors"
+	"fmt"
 	"path"
 
 	yaml "gopkg.in/yaml.v2"
@@ -56,10 +56,10 @@ func (d *DotGalaxy) ListEnvironments() []string {
 // GetNamespaceDir returns the path to the namespace directory, or error
 func (d *DotGalaxy) GetNamespaceDir(name string) (string, error) {
 	if !stringSliceContains(d.Spec.Namespaces.Names, name) {
-		return "", errors.New("namespace informed does not exist: " + name)
+		return "", fmt.Errorf("namespace informed does not exist '%s'", name)
 	}
 	if !isDir(d.Spec.Namespaces.BaseDir) {
-		return "", errors.New("baseDir is not a directory: " + d.Spec.Namespaces.BaseDir)
+		return "", fmt.Errorf("baseDir is not a directory '%s'", d.Spec.Namespaces.BaseDir)
 	}
 	return path.Join(d.Spec.Namespaces.BaseDir, name), nil
 }
@@ -72,7 +72,7 @@ func (d *DotGalaxy) GetEnvironment(name string) (*Environment, error) {
 			return &env, nil
 		}
 	}
-	return nil, errors.New("Environment is not found: " + name)
+	return nil, fmt.Errorf("environment is not found '%s'", name)
 }
 
 // NewDotGalaxy to load `.galaxy.yml` file.

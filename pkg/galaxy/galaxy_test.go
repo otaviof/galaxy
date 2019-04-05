@@ -3,7 +3,6 @@ package galaxy
 import (
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,7 +12,7 @@ func TestGalaxyNew(t *testing.T) {
 	var dotGalaxy, _ = NewDotGalaxy("../../test/galaxy.yaml")
 	var cmdArgs = make(map[string]string)
 
-	app = NewGalaxy(logrus.New(), dotGalaxy, cmdArgs)
+	app = NewGalaxy(dotGalaxy, cmdArgs)
 
 	assert.NotNil(t, app)
 }

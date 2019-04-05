@@ -4,12 +4,11 @@ import (
 	"path"
 	"testing"
 
-	logrus "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 func populatedContext(t *testing.T) *Context {
-	context := NewContext(logrus.New())
+	context := NewContext()
 	dotGalaxy, err := NewDotGalaxy("../../test/galaxy.yaml")
 	assert.Nil(t, err)
 
@@ -25,6 +24,6 @@ func populatedContext(t *testing.T) *Context {
 func TestContextInspectDir(t *testing.T) {
 	context := populatedContext(t)
 
-	assert.Equal(t, 3, len(context.nsFiles["ns1"]))
-	assert.Equal(t, 1, len(context.nsFiles["ns2"]))
+	assert.Equal(t, 3, len(context.releases["ns1"]))
+	assert.Equal(t, 1, len(context.releases["ns2"]))
 }

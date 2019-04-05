@@ -1,13 +1,11 @@
 package galaxy
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 /**
@@ -16,9 +14,9 @@ import (
 
 // Plan holds methods to plan releases for a given environment.
 type Plan struct {
-	log *logrus.Logger // logger
-	env *Environment
-	ctx *Context
+	logger *log.Entry // logger
+	env    *Environment
+	ctx    *Context
 }
 
 // skipOnNamespace check if informed namespace is configured to be skipped in environment.
@@ -34,14 +32,15 @@ func (p *Plan) skipOnNamespace(ns string) bool {
 
 // extractFileSuffix apply regex to file name in order to extract allowed extensions and suffixes,
 // and return only suffix part.
-func (p *Plan) extractFileSuffix(file string, extensions []string) (string, error) {
+func (p *Plan) extractFileSuffix(file string, exts []string) (string, error) {
 	var fileRe *regexp.Regexp
 	var suffixRe *regexp.Regexp
-	var res []string
 	var err error
 
-	extExpr := fmt.Sprintf("(.*?)\\.(%s)$", strings.Join(extensions, "|")) // known extensions
-	suffixExpr := ".*?-(\\w+)$"                                            // name convention
+	logger := p.logger.WithFields(log.Fields{"file": file, "exts": exts})
+
+	extExpr := fmt.Sprintf("(.*?)\\.(%s)$", strings.Join(exts, "|")) // known extensions
+	suffixExpr := ".*?-(\\w+)$"                                      // name convention
 
 	if fileRe, err = regexp.Compile(extExpr); err != nil {
 		return "", err
@@ -51,19 +50,18 @@ func (p *Plan) extractFileSuffix(file string, extensions []string) (string, erro
 	}
 
 	// removing extension from file name
-	res = fileRe.FindStringSubmatch(file)
+	res := fileRe.FindStringSubmatch(file)
 	if len(res) != 3 {
-		return "", errors.New(
-			"Unable to parse file '" + file + "' parts=" + fmt.Sprintf("%#v", res))
+		return "", fmt.Errorf("unable to parse file '%s', using parts '%#v'", file, res)
 	}
 	// using the file without extension, applying regex to get suffix
 	res = suffixRe.FindStringSubmatch(res[1])
 	if len(res) == 2 {
-		p.log.Infof("[Plan] file='%s', suffix='%s'", file, res[1])
+		logger.Infof("Suffix: '%s'", res[1])
 		return res[1], nil
 	}
 
-	p.log.Infof("[Plan] file='%s', suffix=''", file)
+	logger.Infof("No suffix found for file!")
 	return "", nil
 }
 
@@ -82,48 +80,53 @@ func (p *Plan) namespaceName(ns string) string {
 }
 
 // ContextForEnvironment narrow down context to comply with the rules defined in Environment.
-func (p *Plan) ContextForEnvironment(extensions []string) (*Context, error) {
+func (p *Plan) ContextForEnvironment(exts []string) (*Context, error) {
 	var suffix string
 	var err error
 
-	envContext := NewContext(p.log)
-
-	p.log.Infof("[Plan] Working out a plan for '%s' environment.", p.env.Name)
+	p.logger.Info("Working out a plan...")
+	envContext := NewContext()
 
 	for ns, files := range p.ctx.GetNamespaceFilesMap() {
-		p.log.Infof("[Plan] Namespace: '%s', files: '%s'", ns, formatSlice(files))
+		logger := p.logger.WithField("namespace", ns)
+		logger.Infof("Planing namespace, %d files", len(files))
 
 		if p.skipOnNamespace(ns) {
-			p.log.Infof("[Plan] Skipping namespace '%s' in environment!", ns)
+			logger.Info("Skipping namespace in environment!")
 			continue
 		}
 
 		// altering the namespace name for environment
 		ns = p.namespaceName(ns)
-		p.log.Infof("[Plan] Target namespace: '%s'", ns)
+		logger = logger.WithField("target-namespace", ns)
+		logger.Infof("Acquiring target namespace: '%s'", ns)
 
 		for _, file := range files {
-			if suffix, err = p.extractFileSuffix(file, extensions); err != nil {
+			if suffix, err = p.extractFileSuffix(file, exts); err != nil {
 				return nil, err
 			}
-			p.log.Infof("[Plan] Inspecting file: '%s' (suffix='%s')", file, suffix)
+			logger = logger.WithFields(log.Fields{"file": file, "suffix": suffix})
+			logger.Info("Inspecting file")
 
 			// checking if file is applicable in current environment
 			if p.skipOnSuffix(suffix) {
-				p.log.Info("[Plan] Skipping!")
+				logger.Info("Skipping file on based on suffix!")
 				continue
 			}
 
-			p.log.Infof("[Plan] Adding to new scope: '%s'", file)
+			logger.Infof("Adding file to new scope: '%s'", file)
 			envContext.AddFile(ns, file)
 		}
 	}
 
-	log.Printf("[Plan] New-Context: '%#v'", envContext)
 	return envContext, nil
 }
 
 // NewPlan creates a new Plan type instance.
-func NewPlan(log *logrus.Logger, env *Environment, ctx *Context) *Plan {
-	return &Plan{log: log, env: env, ctx: ctx}
+func NewPlan(env *Environment, ctx *Context) *Plan {
+	return &Plan{
+		logger: log.WithFields(log.Fields{"type": "plan", "env": env.Name}),
+		env:    env,
+		ctx:    ctx,
+	}
 }

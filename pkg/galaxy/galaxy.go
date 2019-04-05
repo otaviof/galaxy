@@ -1,81 +1,103 @@
 package galaxy
 
-/**
- * Represents the application instance, and comprises the application execution steps. Each public
- * method represents the execution phase:
- *   - Inspect: look for directories and release files, secret definitions, etc;
- *   - Plan: based in a target environment, manage the scope;
- *   - Execute: apply changes in environment;
- */
-
 import (
-	"errors"
-	"path"
+	"fmt"
 
-	logrus "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Galaxy holds application runtime items
 type Galaxy struct {
-	dotGalaxy *DotGalaxy        // global configuration
-	cmdArgs   map[string]string // command-line arguments
-	current   *Context          // keeps the original context of each namespace
-	future    *Context          // context after modifications
-	log       *logrus.Logger    // logger
+	logger      *log.Entry            // logger
+	dotGalaxy   *DotGalaxy            // global configuration
+	cmdArgs     map[string]string     // command-line arguments
+	originalCtx map[string][]*Context // original context per environment
+	modifiedCtx map[string][]*Context // modified context per environment
 }
+
+// actOnContext called during Loop method
+type actOnContext func(logger *log.Entry, env string, context *Context) error
 
 // Inspect directories and files per namespace, create and populate the context.
 func (a *Galaxy) Inspect() error {
-	var err error
-
-	baseDir := a.dotGalaxy.Spec.Namespaces.BaseDir
-	exts := a.dotGalaxy.Spec.Namespaces.Extensions
-
 	if !isDir(a.dotGalaxy.Spec.Namespaces.BaseDir) {
-		return errors.New("base directory not found at: " + baseDir)
+		return fmt.Errorf("base directory not found at: %s", a.dotGalaxy.Spec.Namespaces.BaseDir)
 	}
 
-	for _, ns := range a.dotGalaxy.Spec.Namespaces.Names {
-		nsPath := path.Join(baseDir, ns)
-		if err = a.current.InspectDir(ns, nsPath, exts); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return a.Loop(func(logger *log.Entry, env string, context *Context) error {
+		a.originalCtx[env] = append(a.originalCtx[env], context)
+		return nil
+	})
 }
 
 // Plan manage the scope of changes, by checking which release files should be in.
 func (a *Galaxy) Plan() error {
-	var env *Environment
-	var plan *Plan
-	var err error
+	return a.Loop(func(logger *log.Entry, envName string, context *Context) error {
+		var exts = a.dotGalaxy.Spec.Namespaces.Extensions
+		var env *Environment
+		var modified *Context
+		var err error
 
-	// FIXME: environment name should be informed by parameter;
-	if env, err = a.dotGalaxy.GetEnvironment("dev"); err != nil {
-		return err
-	}
+		if env, err = a.dotGalaxy.GetEnvironment(envName); err != nil {
+			return err
+		}
 
-	plan = NewPlan(a.log, env, a.current)
+		logger.Info("Planing...")
+		plan := NewPlan(env, context)
+		if modified, err = plan.ContextForEnvironment(exts); err != nil {
+			return err
+		}
 
-	if a.future, err = plan.ContextForEnvironment(a.dotGalaxy.Spec.Namespaces.Extensions); err != nil {
-		return err
-	}
-
-	return nil
+		a.modifiedCtx[envName] = append(a.modifiedCtx[envName], modified)
+		return nil
+	})
 }
 
 func (a *Galaxy) Execute() error {
 	return nil
 }
 
+// Loop over environments and its contexts.
+func (a *Galaxy) Loop(fn actOnContext) error {
+	var exts = a.dotGalaxy.Spec.Namespaces.Extensions
+	var err error
+
+	logger := a.logger.WithField("exts", exts)
+	for _, env := range a.dotGalaxy.ListEnvironments() {
+		context := NewContext()
+		logger = a.logger.WithField("env", env)
+
+		for _, ns := range a.dotGalaxy.ListNamespaces() {
+			var baseDir string
+
+			if baseDir, err = a.dotGalaxy.GetNamespaceDir(ns); err != nil {
+				return err
+			}
+			logger.Infof("Inspecting namespace '%s', directory '%s'", ns, baseDir)
+			if err = context.InspectDir(ns, baseDir, exts); err != nil {
+				logger.Fatalf("error during inspecting context: %#v", err)
+				return err
+			}
+		}
+
+		if err = fn(logger, env, context); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *Galaxy) GetModifiedContextMap() map[string][]*Context {
+	return a.modifiedCtx
+}
+
 // NewGalaxy instantiages a new application instance.
-func NewGalaxy(log *logrus.Logger, dotGalaxy *DotGalaxy, cmdArgs map[string]string) *Galaxy {
+func NewGalaxy(dotGalaxy *DotGalaxy, cmdArgs map[string]string) *Galaxy {
 	return &Galaxy{
-		log:       log,
-		dotGalaxy: dotGalaxy,
-		cmdArgs:   cmdArgs,
-		current:   NewContext(log),
-		future:    NewContext(log),
+		logger:      log.WithField("type", "galaxy"),
+		dotGalaxy:   dotGalaxy,
+		cmdArgs:     cmdArgs,
+		originalCtx: make(map[string][]*Context),
+		modifiedCtx: make(map[string][]*Context),
 	}
 }

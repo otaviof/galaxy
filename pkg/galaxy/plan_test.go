@@ -5,22 +5,20 @@ import (
 	"path"
 	"testing"
 
-	logrus "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 var plan *Plan
 
 func TestPlanNewPlan(t *testing.T) {
-	logger := logrus.New()
 	dotGalaxy, _ := NewDotGalaxy("../../test/galaxy.yaml")
 	env, _ := dotGalaxy.GetEnvironment("dev")
-	ctx := NewContext(logger)
+	ctx := NewContext()
 	baseDir := path.Join(dotGalaxy.Spec.Namespaces.BaseDir, "ns1")
 
 	ctx.InspectDir("ns1", baseDir, dotGalaxy.Spec.Namespaces.Extensions)
 
-	plan = NewPlan(logger, env, ctx)
+	plan = NewPlan(env, ctx)
 }
 
 func TestPlanExtractFileSuffix(t *testing.T) {
