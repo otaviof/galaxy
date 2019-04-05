@@ -1,0 +1,7 @@
+---
+name: app5
+release:
+  chart: repo/chart:0.0.1
+  version: 0.0.1
+configuration: {}
+environments: {}
