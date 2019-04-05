@@ -53,7 +53,8 @@ func (a *Galaxy) Plan() error {
 	})
 }
 
-func (a *Galaxy) Execute() error {
+// Apply changes planned just before.
+func (a *Galaxy) Apply() error {
 	return nil
 }
 
@@ -87,6 +88,8 @@ func (a *Galaxy) Loop(fn actOnContext) error {
 	return nil
 }
 
+// GetModifiedContextMap exposes the modified contexts that have been stored by Plan. It organizes
+// the planing per environment, a string used a map's key.
 func (a *Galaxy) GetModifiedContextMap() map[string][]*Context {
 	return a.modifiedCtx
 }

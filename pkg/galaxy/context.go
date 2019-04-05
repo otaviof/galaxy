@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Context of releases per namespace directory.
+// Context of releases per namespace directory, a context is unique per environment.
 type Context struct {
 	logger   *log.Entry           // logger
 	releases map[string][]Release // releases per namespace (key)
@@ -22,10 +22,17 @@ type Context struct {
 
 // Release binds together a file and a Landscaper component
 type Release struct {
-	Namespace string
-	File      string
-	Component *ldsc.Component
+	Name      string          // original Landscaper release name
+	Namespace string          // release namespace
+	File      string          // release file path
+	Component *ldsc.Component // Landscaper component
 }
+
+// ReleaseRenamer method to rename releases in this context
+type ReleaseRenamer func(ns, name string) (string, error)
+
+// NamespaceRenamer method to rename namespaces in this context
+type NamespaceRenamer func(ns string) string
 
 // InspectDir look for files with informed extensions.
 func (c *Context) InspectDir(ns string, dirPath string, extentions []string) error {
@@ -48,7 +55,7 @@ func (c *Context) InspectDir(ns string, dirPath string, extentions []string) err
 		}
 		for _, file := range files {
 			logger.Infof("Inspecting file: '%s'", file)
-			if err = c.AddFile(ns, file); err != nil {
+			if err = c.AddReleaseFile(ns, file); err != nil {
 				return err
 			}
 		}
@@ -58,8 +65,8 @@ func (c *Context) InspectDir(ns string, dirPath string, extentions []string) err
 	return nil
 }
 
-// AddFile to a namespace.
-func (c *Context) AddFile(ns, file string) error {
+// AddReleaseFile adds a release file to a namespace.
+func (c *Context) AddReleaseFile(ns, file string) error {
 	var err error
 
 	release := Release{Namespace: ns, File: file}
@@ -69,6 +76,31 @@ func (c *Context) AddFile(ns, file string) error {
 
 	c.releases[ns] = append(c.releases[ns], release)
 	return nil
+}
+
+// RenameLandscaperReleases based on prefix and suffix, rename the existing releases.
+func (c *Context) RenameLandscaperReleases(fn ReleaseRenamer) error {
+	var err error
+
+	for ns, releases := range c.releases {
+		for _, release := range releases {
+			if release.Component.Name, err = fn(ns, release.Component.Name); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// RenameNamespaces loop namespaces in this context to rename it based in informed method output.
+func (c *Context) RenameNamespaces(fn NamespaceRenamer) {
+	var copy = make(map[string][]Release)
+	for ns := range c.releases {
+		name := fn(ns)
+		copy[name] = c.releases[ns]
+	}
+	c.releases = copy
 }
 
 // GetNamespaceFilesMap expose map of namespace and its files
@@ -82,6 +114,8 @@ func (c *Context) GetNamespaceFilesMap() map[string][]string {
 	return filesMap
 }
 
+// GetNamespaceReleasesMap expose internal releases map, which consists of namespace name and a list
+// of release objects.
 func (c *Context) GetNamespaceReleasesMap() map[string][]Release {
 	return c.releases
 }

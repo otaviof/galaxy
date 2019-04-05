@@ -1,6 +1,7 @@
 package galaxy
 
 import (
+	"fmt"
 	"path"
 	"testing"
 
@@ -26,4 +27,30 @@ func TestContextInspectDir(t *testing.T) {
 
 	assert.Equal(t, 3, len(context.releases["ns1"]))
 	assert.Equal(t, 1, len(context.releases["ns2"]))
+}
+
+func TestContextRenameLandscaperReleases(t *testing.T) {
+	context := populatedContext(t)
+
+	context.RenameLandscaperReleases(func(ns, name string) (string, error) {
+		return fmt.Sprintf("%s-%s", ns, name), nil
+	})
+
+	for ns, releases := range context.releases {
+		for _, release := range releases {
+			assert.Contains(t, release.Component.Name, fmt.Sprintf("%s-", ns))
+		}
+	}
+}
+
+func TestContextRenameNamespaces(t *testing.T) {
+	context := populatedContext(t)
+
+	context.RenameNamespaces(func(ns string) string {
+		return fmt.Sprintf("test-%s", ns)
+	})
+
+	for ns := range context.releases {
+		assert.Contains(t, ns, "test-")
+	}
 }

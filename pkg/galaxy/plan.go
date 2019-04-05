@@ -5,28 +5,133 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/buildkite/interpolate"
 	log "github.com/sirupsen/logrus"
 )
-
-/**
- * Works on a Context to enforce rules defined by a given Environment.
- */
 
 // Plan holds methods to plan releases for a given environment.
 type Plan struct {
 	logger *log.Entry // logger
 	env    *Environment
 	ctx    *Context
+	envCtx *Context
+}
+
+// ContextForEnvironment narrow down context to comply with the rules defined in Environment.
+func (p *Plan) ContextForEnvironment(exts []string) (*Context, error) {
+	var err error
+
+	p.logger.Info("Working out a plan...")
+	if err = p.filter(exts); err != nil {
+		return nil, err
+	}
+	if p.env.Transform.ReleasePrefix != "" || p.env.Transform.ReleaseSuffix != "" {
+		if err = p.renameReleases(); err != nil {
+			return nil, err
+		}
+	}
+	p.renameNamespaces()
+
+	return p.envCtx, nil
+}
+
+func (p *Plan) filter(exts []string) error {
+	var err error
+
+	p.logger.Info("Filtering files...")
+	for ns, files := range p.ctx.GetNamespaceFilesMap() {
+		logger := p.logger.WithField("namespace", ns)
+		logger.Infof("Planing namespace, %d files", len(files))
+
+		if p.skipOnNamespace(ns) {
+			logger.Info("Skipping namespace in environment!")
+			continue
+		}
+
+		logger = logger.WithField("target-namespace", ns)
+		logger.Infof("Acquiring target namespace: '%s'", ns)
+
+		for _, file := range files {
+			var suffix string
+
+			if suffix, err = p.extractFileSuffix(file, exts); err != nil {
+				return err
+			}
+			logger = logger.WithFields(log.Fields{"file": file, "suffix": suffix})
+			logger.Info("Inspecting file...")
+
+			// checking if file is applicable in current environment
+			if p.skipOnSuffix(suffix) {
+				logger.Info("Skipping file on based on suffix!")
+				continue
+			}
+
+			logger.Infof("Adding file to new scope: '%s'", file)
+			p.envCtx.AddReleaseFile(ns, file)
+		}
+	}
+
+	return nil
+}
+
+func (p *Plan) renameReleases() error {
+	logger := p.logger.WithFields(log.Fields{
+		"prefix": p.env.Transform.ReleasePrefix,
+		"suffix": p.env.Transform.ReleaseSuffix,
+	})
+	logger.Info("Renaming releases...")
+
+	return p.envCtx.RenameLandscaperReleases(func(namespace, name string) (string, error) {
+		var err error
+
+		placeholders := interpolate.NewSliceEnv([]string{
+			fmt.Sprintf("NAMESPACE=%s", namespace),
+			fmt.Sprintf("RELEASE_NAMESPACE=%s", namespace),
+			fmt.Sprintf("RELEASE_NAME=%s", name),
+			fmt.Sprintf("RELEASE_PREFIX=%s", p.env.Transform.ReleasePrefix),
+			fmt.Sprintf("RELEASE_SUFFIX=%s", p.env.Transform.ReleaseSuffix),
+			fmt.Sprintf("NAMESPACE_SUFFIX=%s", p.env.Transform.NamespaceSuffix),
+		})
+		releaseName := fmt.Sprintf("%s%s%s",
+			p.env.Transform.ReleasePrefix,
+			name,
+			p.env.Transform.ReleaseSuffix,
+		)
+		if releaseName, err = interpolate.Interpolate(placeholders, releaseName); err != nil {
+			return "", err
+		}
+		logger.WithFields(log.Fields{"namespace": namespace, "name": name}).
+			Debugf("Release named '%s' is renamed to '%s'", name, releaseName)
+
+		return releaseName, nil
+	})
+}
+
+func (p *Plan) renameNamespaces() {
+	p.logger.Infof("Renaming namespaces...")
+	p.envCtx.RenameNamespaces(func(ns string) string {
+		if p.env.Transform.NamespaceSuffix != "" {
+			return fmt.Sprintf("%s%s", ns, p.env.Transform.NamespaceSuffix)
+		}
+		return ns
+	})
 }
 
 // skipOnNamespace check if informed namespace is configured to be skipped in environment.
 func (p *Plan) skipOnNamespace(ns string) bool {
-	var skipNs string
-	for _, skipNs = range p.env.SkipOnNamespaces {
-		if ns == skipNs {
+	var s string
+
+	for _, s = range p.env.OnlyOnNamespaces {
+		if ns == s {
+			return false
+		}
+	}
+	for _, s = range p.env.SkipOnNamespaces {
+		if ns == s {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -71,62 +176,12 @@ func (p *Plan) skipOnSuffix(suffix string) bool {
 	return !stringSliceContains(p.env.FileSuffixes, suffix)
 }
 
-// namespaceName alters the name of the namespace based in environment configuration.
-func (p *Plan) namespaceName(ns string) string {
-	if p.env.Transform.NamespaceSuffix != "" {
-		return fmt.Sprintf("%s-%s", ns, p.env.Transform.NamespaceSuffix)
-	}
-	return ns
-}
-
-// ContextForEnvironment narrow down context to comply with the rules defined in Environment.
-func (p *Plan) ContextForEnvironment(exts []string) (*Context, error) {
-	var suffix string
-	var err error
-
-	p.logger.Info("Working out a plan...")
-	envContext := NewContext()
-
-	for ns, files := range p.ctx.GetNamespaceFilesMap() {
-		logger := p.logger.WithField("namespace", ns)
-		logger.Infof("Planing namespace, %d files", len(files))
-
-		if p.skipOnNamespace(ns) {
-			logger.Info("Skipping namespace in environment!")
-			continue
-		}
-
-		// altering the namespace name for environment
-		ns = p.namespaceName(ns)
-		logger = logger.WithField("target-namespace", ns)
-		logger.Infof("Acquiring target namespace: '%s'", ns)
-
-		for _, file := range files {
-			if suffix, err = p.extractFileSuffix(file, exts); err != nil {
-				return nil, err
-			}
-			logger = logger.WithFields(log.Fields{"file": file, "suffix": suffix})
-			logger.Info("Inspecting file")
-
-			// checking if file is applicable in current environment
-			if p.skipOnSuffix(suffix) {
-				logger.Info("Skipping file on based on suffix!")
-				continue
-			}
-
-			logger.Infof("Adding file to new scope: '%s'", file)
-			envContext.AddFile(ns, file)
-		}
-	}
-
-	return envContext, nil
-}
-
 // NewPlan creates a new Plan type instance.
 func NewPlan(env *Environment, ctx *Context) *Plan {
 	return &Plan{
 		logger: log.WithFields(log.Fields{"type": "plan", "env": env.Name}),
 		env:    env,
 		ctx:    ctx,
+		envCtx: NewContext(),
 	}
 }

@@ -47,10 +47,6 @@ func TestPlanSkipOnSuffix(t *testing.T) {
 	assert.False(t, plan.skipOnSuffix(""))
 }
 
-func TestPlanNamespaceName(t *testing.T) {
-	assert.Equal(t, "ns1-d", plan.namespaceName("ns1"))
-}
-
 func TestPlanContextForEnvironment(t *testing.T) {
 	var extensions = []string{"secret", "yaml"}
 	var expected = map[string][]string{

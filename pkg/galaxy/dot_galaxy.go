@@ -22,14 +22,17 @@ type Spec struct {
 type Environment struct {
 	Name             string    `yaml:"name"`
 	SkipOnNamespaces []string  `yaml:"skipOnNamespaces"`
+	OnlyOnNamespaces []string  `yaml:"onlyOnNamespaces"`
 	FileSuffixes     []string  `yaml:"fileSuffixes"`
 	Transform        Transform `yaml:"transform"`
 }
 
 // Transform configuration on how to transform a release for that environment
 type Transform struct {
+	NamespacePrefix string `yaml:"namespacePrefix"`
 	NamespaceSuffix string `yaml:"namespaceSuffix"`
 	ReleasePrefix   string `yaml:"releasePrefix"`
+	ReleaseSuffix   string `yaml:"releaseSuffix"`
 }
 
 // Namespaces in kubernetes, representation to where to find namespace directories and releases
