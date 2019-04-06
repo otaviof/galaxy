@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	galaxy "github.com/otaviof/galaxy/pkg/galaxy"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -15,51 +14,56 @@ var rootCmd = &cobra.Command{
 	Long:  ``,
 }
 
-var config string      // config file path
-var environment string // environment name
-var logLevel string    // logrus log level
-var dryRun bool        // dry-run flag
-var log = logrus.New() // logger
+type cmdLineOptions struct {
+	config      string // dot-galaxy file path
+	environment string // target environment name
+	logLevel    string // log verboseness
+	dryRun      bool   // dry-run flag
+}
+
+var opts = cmdLineOptions{}
+
+// bootstrap reads the configuration from command-line informed place, and set log-level
+func bootstrap() *galaxy.DotGalaxy {
+	var dotGalaxy *galaxy.DotGalaxy
+	var level log.Level
+	var err error
+
+	if dotGalaxy, err = galaxy.NewDotGalaxy(opts.config); err != nil {
+		log.Fatalf("[ERROR] Parsing dot-galaxy file ('%s'): %s", opts.config, err)
+	}
+	if level, err = log.ParseLevel(opts.logLevel); err != nil {
+		log.Fatalf("[ERROR] Setting log-level ('%s'): %s", opts.logLevel, err)
+	}
+	log.SetLevel(level)
+
+	return dotGalaxy
+}
+
+func plan() map[string][]*galaxy.Context {
+	var err error
+
+	dotGalaxy := bootstrap()
+	g := galaxy.NewGalaxy(dotGalaxy, map[string]string{})
+
+	if err = g.Plan(); err != nil {
+		log.Fatal(err)
+	}
+
+	return g.GetModifiedContextMap()
+}
 
 // init command-line arguments
 func init() {
 	var flags = rootCmd.PersistentFlags()
 
-	flags.StringVarP(&config, "config", "c", ".galaxy.yaml", "configuration file.")
-	flags.BoolVarP(&dryRun, "dry-run", "d", false, "dry-run mode.")
-	flags.StringVarP(&environment, "environment", "e", "", "target environment.")
-	flags.StringVarP(&logLevel, "log-level", "l", "error", "logging level.")
-}
-
-// setLogLevel interacts with logrus to set logger level.
-func setLogLevel() error {
-	var level logrus.Level
-	var err error
-
-	if level, err = logrus.ParseLevel(logLevel); err != nil {
-		return err
-	}
-	log.SetLevel(level)
-
-	return nil
-}
-
-// loadConfig reads the configuration from command-line informed place
-func loadConfig() *galaxy.DotGalaxy {
-	var dotGalaxy *galaxy.DotGalaxy
-	var err error
-
-	if dotGalaxy, err = galaxy.NewDotGalaxy(config); err != nil {
-		log.Fatalf("[ERROR] %s", err)
-	}
-
-	return dotGalaxy
+	flags.StringVarP(&opts.config, "config", "c", ".galaxy.yaml", "configuration file.")
+	flags.BoolVarP(&opts.dryRun, "dry-run", "d", false, "dry-run mode.")
+	flags.StringVarP(&opts.logLevel, "log-level", "l", "error", "logging level.")
 }
 
 func main() {
 	var err error
-
-	log.Out = os.Stdout
 
 	if err = rootCmd.Execute(); err != nil {
 		panic(fmt.Sprintf("[ERROR] %s", err))
