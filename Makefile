@@ -26,4 +26,9 @@ test: FORCE
 integration:
 	go test -v $(E2E_TEST_DIR)/*
 
+codecov:
+	mkdir .ci || true
+	curl -s -o .ci/codecov.sh https://codecov.io/bash
+	bash .ci/codecov.sh -t $(CODECOV_TOKEN)
+
 FORCE: ;
