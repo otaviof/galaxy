@@ -35,17 +35,17 @@ type ReleaseRenamer func(ns, name string) (string, error)
 type NamespaceRenamer func(ns string) string
 
 // InspectDir look for files with informed extensions.
-func (c *Context) InspectDir(ns string, dirPath string, extentions []string) error {
+func (c *Context) InspectDir(ns string, dirPath string, exts []string) error {
 	var err error
 
-	logger := c.logger.WithFields(log.Fields{"namespace": ns, "dir": dirPath, "exts": extentions})
+	logger := c.logger.WithFields(log.Fields{"namespace": ns, "dir": dirPath, "exts": exts})
 	logger.Infof("Inspecting namespace: '%s'", ns)
 
 	if !isDir(dirPath) {
 		return fmt.Errorf("Namespace directory is not found at: '%s'", dirPath)
 	}
 
-	for _, ext := range extentions {
+	for _, ext := range exts {
 		var files []string
 
 		extExpr := fmt.Sprintf("*.%s", ext)
