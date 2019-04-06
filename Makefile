@@ -20,8 +20,8 @@ clean:
 clean-vendor:
 	rm -rf ./vendor > /dev/null
 
-test: FORCE
-	go test -cover -v pkg/$(APP)/*
+test:
+	go test -race -coverprofile=coverage.txt -covermode=atomic -cover -v pkg/$(APP)/*
 
 integration:
 	go test -v $(E2E_TEST_DIR)/*
@@ -30,5 +30,3 @@ codecov:
 	mkdir .ci || true
 	curl -s -o .ci/codecov.sh https://codecov.io/bash
 	bash .ci/codecov.sh -t $(CODECOV_TOKEN)
-
-FORCE: ;

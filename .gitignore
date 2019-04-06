@@ -1,6 +1,7 @@
-build
-vendor
 .env
-.vscode
 .galaxy.yaml
 .tmp
+.vscode
+build
+coverage.txt
+vendor
