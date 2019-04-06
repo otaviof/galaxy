@@ -48,18 +48,19 @@ func TestPlanSkipOnSuffix(t *testing.T) {
 }
 
 func TestPlanContextForEnvironment(t *testing.T) {
-	var extensions = []string{"secret", "yaml"}
-	var expected = map[string][]string{
+	var ctx *Context
+	var err error
+
+	extensions := []string{"secret", "yaml"}
+	expected := map[string][]string{
 		"ns1-d": {
 			"../../test/namespaces/ns1/app1.yaml",
 			"../../test/namespaces/ns1/app2-d.yaml",
 		},
 	}
-	var context *Context
-	var err error
 
-	context, err = plan.ContextForEnvironment(extensions)
+	ctx, err = plan.ContextForEnvironment(extensions)
 
 	assert.Nil(t, err)
-	assert.Equal(t, expected, context.GetNamespaceFilesMap())
+	assert.Equal(t, expected, ctx.GetNamespaceFilesMap())
 }

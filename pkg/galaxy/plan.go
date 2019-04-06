@@ -35,6 +35,8 @@ func (p *Plan) ContextForEnvironment(exts []string) (*Context, error) {
 	return p.envCtx, nil
 }
 
+// filter based on namespace name, using skipOnNamespaces and onlyOnNamespaces, and files based in
+// file name and its suffix.
 func (p *Plan) filter(exts []string) error {
 	var err error
 
@@ -74,6 +76,8 @@ func (p *Plan) filter(exts []string) error {
 	return nil
 }
 
+// renameReleases execute the rename of releases passing a method along, it also exports a number
+// of interpolation variables to be replacted on release name.
 func (p *Plan) renameReleases() error {
 	logger := p.logger.WithFields(log.Fields{
 		"prefix": p.env.Transform.ReleasePrefix,
@@ -90,6 +94,7 @@ func (p *Plan) renameReleases() error {
 			fmt.Sprintf("RELEASE_NAME=%s", name),
 			fmt.Sprintf("RELEASE_PREFIX=%s", p.env.Transform.ReleasePrefix),
 			fmt.Sprintf("RELEASE_SUFFIX=%s", p.env.Transform.ReleaseSuffix),
+			fmt.Sprintf("NAMESPACE_PREFIX=%s", p.env.Transform.NamespacePrefix),
 			fmt.Sprintf("NAMESPACE_SUFFIX=%s", p.env.Transform.NamespaceSuffix),
 		})
 		releaseName := fmt.Sprintf("%s%s%s",
@@ -107,11 +112,14 @@ func (p *Plan) renameReleases() error {
 	})
 }
 
+// renameNamespaces execute the rename of namespaces by passing a method along.
 func (p *Plan) renameNamespaces() {
 	p.logger.Infof("Renaming namespaces...")
 	p.envCtx.RenameNamespaces(func(ns string) string {
-		if p.env.Transform.NamespaceSuffix != "" {
-			return fmt.Sprintf("%s%s", ns, p.env.Transform.NamespaceSuffix)
+		if p.env.Transform.NamespacePrefix != "" || p.env.Transform.NamespaceSuffix != "" {
+			return fmt.Sprintf("%s%s%s",
+				p.env.Transform.NamespacePrefix, ns, p.env.Transform.NamespaceSuffix,
+			)
 		}
 		return ns
 	})

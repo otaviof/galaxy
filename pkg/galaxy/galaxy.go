@@ -16,7 +16,7 @@ type Galaxy struct {
 }
 
 // actOnContext called during Loop method
-type actOnContext func(logger *log.Entry, env string, context *Context) error
+type actOnContext func(logger *log.Entry, env string, ctx *Context) error
 
 // Inspect directories and files per namespace, create and populate the context.
 func (a *Galaxy) Inspect() error {
@@ -24,15 +24,15 @@ func (a *Galaxy) Inspect() error {
 		return fmt.Errorf("base directory not found at: %s", a.dotGalaxy.Spec.Namespaces.BaseDir)
 	}
 
-	return a.Loop(func(logger *log.Entry, env string, context *Context) error {
-		a.originalCtx[env] = append(a.originalCtx[env], context)
+	return a.Loop(func(logger *log.Entry, env string, ctx *Context) error {
+		a.originalCtx[env] = append(a.originalCtx[env], ctx)
 		return nil
 	})
 }
 
 // Plan manage the scope of changes, by checking which release files should be in.
 func (a *Galaxy) Plan() error {
-	return a.Loop(func(logger *log.Entry, envName string, context *Context) error {
+	return a.Loop(func(logger *log.Entry, envName string, ctx *Context) error {
 		var exts = a.dotGalaxy.Spec.Namespaces.Extensions
 		var env *Environment
 		var modified *Context
@@ -43,7 +43,7 @@ func (a *Galaxy) Plan() error {
 		}
 
 		logger.Info("Planing...")
-		plan := NewPlan(env, context)
+		plan := NewPlan(env, ctx)
 		if modified, err = plan.ContextForEnvironment(exts); err != nil {
 			return err
 		}
@@ -65,7 +65,7 @@ func (a *Galaxy) Loop(fn actOnContext) error {
 
 	logger := a.logger.WithField("exts", exts)
 	for _, env := range a.dotGalaxy.ListEnvironments() {
-		context := NewContext()
+		ctx := NewContext()
 		logger = a.logger.WithField("env", env)
 
 		for _, ns := range a.dotGalaxy.ListNamespaces() {
@@ -75,13 +75,13 @@ func (a *Galaxy) Loop(fn actOnContext) error {
 				return err
 			}
 			logger.Infof("Inspecting namespace '%s', directory '%s'", ns, baseDir)
-			if err = context.InspectDir(ns, baseDir, exts); err != nil {
+			if err = ctx.InspectDir(ns, baseDir, exts); err != nil {
 				logger.Fatalf("error during inspecting context: %#v", err)
 				return err
 			}
 		}
 
-		if err = fn(logger, env, context); err != nil {
+		if err = fn(logger, env, ctx); err != nil {
 			return err
 		}
 	}
