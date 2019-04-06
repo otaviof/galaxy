@@ -104,6 +104,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:c72341ffcf865ed6d69f1275cc07538ea090d6a03363831e26fc9feed1821048"
+  name = "github.com/buildkite/interpolate"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "973457fa2b4c81e6b755ac41509d41f18027ca77"
+
+[[projects]]
+  branch = "master"
   digest = "1:95e08278c876d185ba67533f045e9e63b3c9d02cbd60beb0f4dbaa2344a13ac2"
   name = "github.com/chai2010/gettext-go"
   packages = [
@@ -489,6 +497,14 @@
   version = "v1.5.2"
 
 [[projects]]
+  digest = "1:aa9c92d4deaf000697e54bbaefb2c830fb319f9e6518cb19df3f4ef9533dc726"
+  name = "github.com/ryanuber/columnize"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "9e6335e58db3b4cfe3c3c5c881f51ffbc1091b34"
+  version = "v2.1.1"
+
+[[projects]]
   digest = "1:b2339e83ce9b5c4f79405f949429a7f68a9a904fed903c672aac1e7ceb7f5f02"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
@@ -519,6 +535,14 @@
   pruneopts = "NUT"
   revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
   version = "v1.3.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:52514b8139bc98de95c107b35d339a229c9233e2ca6893c78c8480d800139c2c"
+  name = "github.com/xlab/treeprint"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "a009c3971eca89777614839eb7f69abed3ea3959"
 
 [[projects]]
   branch = "master"
@@ -1118,9 +1142,12 @@
   analyzer-version = 1
   input-imports = [
     "github.com/Eneco/landscaper/pkg/landscaper",
+    "github.com/buildkite/interpolate",
+    "github.com/ryanuber/columnize",
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
     "github.com/stretchr/testify/assert",
+    "github.com/xlab/treeprint",
     "gopkg.in/yaml.v2",
   ]
   solver-name = "gps-cdcl"
