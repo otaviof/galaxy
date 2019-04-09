@@ -4,7 +4,7 @@ galaxy:
     baseDir: ../../test/namespaces
     extensions:
       - yaml
-      - secret
+      - yml
     names:
       - ns1
       - ns2
