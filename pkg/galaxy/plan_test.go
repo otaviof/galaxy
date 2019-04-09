@@ -1,16 +1,18 @@
 package galaxy
 
 import (
-	"log"
 	"path"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 var plan *Plan
 
 func TestPlanNewPlan(t *testing.T) {
+	log.SetLevel(log.TraceLevel)
+
 	dotGalaxy, _ := NewDotGalaxy("../../test/galaxy.yaml")
 	env, _ := dotGalaxy.GetEnvironment("dev")
 	ctx := NewContext()
@@ -21,45 +23,31 @@ func TestPlanNewPlan(t *testing.T) {
 	plan = NewPlan(env, ctx)
 }
 
-func TestPlanExtractFileSuffix(t *testing.T) {
-	for file, input := range map[string][]string{
-		"file-d.yaml":                    {"secret", "yaml", "d"},
-		"file-x.yaml":                    {"secret", "yaml", "x"},
-		"file.yaml":                      {"secret", "yaml", ""},
-		"/slash/dir/file.yaml":           {"secret", "yaml", ""},
-		"file-a-b-c-d-d.yaml":            {"secret", "yaml", "d"},
-		"file-a-b-c-d-x.yaml":            {"secret", "yaml", "x"},
-		"/slash/dir/file-a-b-c-d-d.yaml": {"secret", "yaml", "d"},
-		"/slash/dir/file-a-b-c-x-x.yaml": {"secret", "yaml", "x"},
-		"file.a.b-c.d.d.yaml":            {"secret", "yaml", ""},
-		"/slash/dir/file.a.b.c.d.d.yaml": {"secret", "yaml", ""},
+func TestPlanSkipFile(t *testing.T) {
+	for file, skip := range map[string]bool{
+		"file-name@d.yaml":   false,
+		"file-name@d@t.yaml": false,
+		"file-name@a.yaml":   true,
+		"file-name.yaml":     false,
+		"file-name@x.yaml":   true,
 	} {
-		log.Printf("input='%#v'", input)
-		res, err := plan.extractFileSuffix(file, []string{input[0], input[1]})
+		t.Logf("Testing name '%s' should skip '%v'", file, skip)
+		skipped, err := plan.skipFile(file)
 		assert.Nil(t, err)
-		assert.Equal(t, input[2], res)
+		assert.Equal(t, skip, skipped)
 	}
-}
-
-func TestPlanSkipOnSuffix(t *testing.T) {
-	assert.True(t, plan.skipOnSuffix("a"))
-	assert.False(t, plan.skipOnSuffix("d"))
-	assert.False(t, plan.skipOnSuffix(""))
 }
 
 func TestPlanContextForEnvironment(t *testing.T) {
-	var ctx *Context
-	var err error
-
-	extensions := []string{"secret", "yaml"}
 	expected := map[string][]string{
 		"ns1-d": {
 			"../../test/namespaces/ns1/app1.yaml",
-			"../../test/namespaces/ns1/app2-d.yaml",
+			"../../test/namespaces/ns1/app2@d.yaml",
+			"../../test/namespaces/ns1/ingress-secret.yaml",
 		},
 	}
 
-	ctx, err = plan.ContextForEnvironment(extensions)
+	ctx, err := plan.ContextForEnvironment()
 
 	assert.Nil(t, err)
 	assert.Equal(t, expected, ctx.GetNamespaceFilesMap())

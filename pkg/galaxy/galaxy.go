@@ -33,7 +33,6 @@ func (a *Galaxy) Inspect() error {
 // Plan manage the scope of changes, by checking which release files should be in.
 func (a *Galaxy) Plan() error {
 	return a.Loop(func(logger *log.Entry, envName string, ctx *Context) error {
-		var exts = a.dotGalaxy.Spec.Namespaces.Extensions
 		var env *Environment
 		var modified *Context
 		var err error
@@ -44,7 +43,7 @@ func (a *Galaxy) Plan() error {
 
 		logger.Info("Planing...")
 		plan := NewPlan(env, ctx)
-		if modified, err = plan.ContextForEnvironment(exts); err != nil {
+		if modified, err = plan.ContextForEnvironment(); err != nil {
 			return err
 		}
 

@@ -5,10 +5,13 @@ import (
 	"path"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 func populatedContext(t *testing.T) *Context {
+	log.SetLevel(log.TraceLevel)
+
 	ctx := NewContext()
 	dotGalaxy, err := NewDotGalaxy("../../test/galaxy.yaml")
 	assert.Nil(t, err)
@@ -25,18 +28,27 @@ func populatedContext(t *testing.T) *Context {
 func TestContextInspectDir(t *testing.T) {
 	ctx := populatedContext(t)
 
-	assert.Equal(t, 3, len(ctx.releases["ns1"]))
-	assert.Equal(t, 1, len(ctx.releases["ns2"]))
+	for _, release := range ctx.Releases {
+		t.Logf("release: '%#v'", release)
+	}
+
+	for _, secret := range ctx.Secrets {
+		t.Logf("secret: '%#v'", secret)
+	}
+
+	assert.Equal(t, 3, len(ctx.Releases["ns1"]))
+	assert.Equal(t, 1, len(ctx.Secrets["ns1"]))
+	assert.Equal(t, 1, len(ctx.Releases["ns2"]))
 }
 
-func TestContextRenameLandscaperReleases(t *testing.T) {
+func TestContextRenameReleases(t *testing.T) {
 	ctx := populatedContext(t)
 
-	ctx.RenameLandscaperReleases(func(ns, name string) (string, error) {
+	ctx.RenameReleases(func(ns, name string) (string, error) {
 		return fmt.Sprintf("%s-%s", ns, name), nil
 	})
 
-	for ns, releases := range ctx.releases {
+	for ns, releases := range ctx.Releases {
 		for _, release := range releases {
 			assert.Contains(t, release.Component.Name, fmt.Sprintf("%s-", ns))
 		}
@@ -44,13 +56,18 @@ func TestContextRenameLandscaperReleases(t *testing.T) {
 }
 
 func TestContextRenameNamespaces(t *testing.T) {
+	var ns string
+
 	ctx := populatedContext(t)
 
 	ctx.RenameNamespaces(func(ns string) string {
 		return fmt.Sprintf("test-%s", ns)
 	})
 
-	for ns := range ctx.releases {
+	for ns = range ctx.Releases {
+		assert.Contains(t, ns, "test-")
+	}
+	for ns = range ctx.Secrets {
 		assert.Contains(t, ns, "test-")
 	}
 }

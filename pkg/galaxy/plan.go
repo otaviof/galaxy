@@ -11,18 +11,18 @@ import (
 
 // Plan holds methods to plan releases for a given environment.
 type Plan struct {
-	logger *log.Entry // logger
-	env    *Environment
-	ctx    *Context
-	envCtx *Context
+	logger *log.Entry   // logger
+	env    *Environment // environment subject to planing
+	ctx    *Context     // current context
+	envCtx *Context     // context planned for environment
 }
 
 // ContextForEnvironment narrow down context to comply with the rules defined in Environment.
-func (p *Plan) ContextForEnvironment(exts []string) (*Context, error) {
+func (p *Plan) ContextForEnvironment() (*Context, error) {
 	var err error
 
 	p.logger.Info("Working out a plan...")
-	if err = p.filter(exts); err != nil {
+	if err = p.filter(); err != nil {
 		return nil, err
 	}
 	if p.env.Transform.ReleasePrefix != "" || p.env.Transform.ReleaseSuffix != "" {
@@ -37,7 +37,7 @@ func (p *Plan) ContextForEnvironment(exts []string) (*Context, error) {
 
 // filter based on namespace name, using skipOnNamespaces and onlyOnNamespaces, and files based in
 // file name and its suffix.
-func (p *Plan) filter(exts []string) error {
+func (p *Plan) filter() error {
 	var err error
 
 	p.logger.Info("Filtering files...")
@@ -54,22 +54,20 @@ func (p *Plan) filter(exts []string) error {
 		logger.Infof("Acquiring target namespace: '%s'", ns)
 
 		for _, file := range files {
-			var suffix string
+			var skip bool
 
-			if suffix, err = p.extractFileSuffix(file, exts); err != nil {
-				return err
-			}
-			logger = logger.WithFields(log.Fields{"file": file, "suffix": suffix})
 			logger.Info("Inspecting file...")
 
-			// checking if file is applicable in current environment
-			if p.skipOnSuffix(suffix) {
-				logger.Info("Skipping file on based on suffix!")
+			if skip, err = p.skipFile(file); err != nil {
+				return err
+			}
+			if skip {
+				logger.Info("Skipping file..")
 				continue
 			}
 
-			logger.Infof("Adding file to new scope: '%s'", file)
-			p.envCtx.AddReleaseFile(ns, file)
+			logger.Infof("Adding file on new scope: '%s'", file)
+			p.envCtx.AddFile(ns, file)
 		}
 	}
 
@@ -85,7 +83,7 @@ func (p *Plan) renameReleases() error {
 	})
 	logger.Info("Renaming releases...")
 
-	return p.envCtx.RenameLandscaperReleases(func(namespace, name string) (string, error) {
+	return p.envCtx.RenameReleases(func(namespace, name string) (string, error) {
 		var err error
 
 		placeholders := interpolate.NewSliceEnv([]string{
@@ -98,9 +96,7 @@ func (p *Plan) renameReleases() error {
 			fmt.Sprintf("NAMESPACE_SUFFIX=%s", p.env.Transform.NamespaceSuffix),
 		})
 		releaseName := fmt.Sprintf("%s%s%s",
-			p.env.Transform.ReleasePrefix,
-			name,
-			p.env.Transform.ReleaseSuffix,
+			p.env.Transform.ReleasePrefix, name, p.env.Transform.ReleaseSuffix,
 		)
 		if releaseName, err = interpolate.Interpolate(placeholders, releaseName); err != nil {
 			return "", err
@@ -143,45 +139,36 @@ func (p *Plan) skipOnNamespace(ns string) bool {
 	return false
 }
 
-// extractFileSuffix apply regex to file name in order to extract allowed extensions and suffixes,
-// and return only suffix part.
-func (p *Plan) extractFileSuffix(file string, exts []string) (string, error) {
-	var fileRe *regexp.Regexp
-	var suffixRe *regexp.Regexp
+// skipFile based on file name, checks for file suffixes (using "@" based notation).
+func (p *Plan) skipFile(file string) (bool, error) {
+	var suffixesRe *regexp.Regexp
 	var err error
 
-	logger := p.logger.WithFields(log.Fields{"file": file, "exts": exts})
+	logger := p.logger.WithField("file", file)
 
-	extExpr := fmt.Sprintf("(.*?)\\.(%s)$", strings.Join(exts, "|")) // known extensions
-	suffixExpr := ".*?-(\\w+)$"                                      // name convention
-
-	if fileRe, err = regexp.Compile(extExpr); err != nil {
-		return "", err
-	}
-	if suffixRe, err = regexp.Compile(suffixExpr); err != nil {
-		return "", err
+	if suffixesRe, err = regexp.Compile("(@\\w+)"); err != nil {
+		p.logger.Errorf("Error on compiling regex: '%s'", err)
+		return false, err
 	}
 
-	// removing extension from file name
-	res := fileRe.FindStringSubmatch(file)
-	if len(res) != 3 {
-		return "", fmt.Errorf("unable to parse file '%s', using parts '%#v'", file, res)
-	}
-	// using the file without extension, applying regex to get suffix
-	res = suffixRe.FindStringSubmatch(res[1])
-	if len(res) == 2 {
-		logger.Infof("Suffix: '%s'", res[1])
-		return res[1], nil
+	res := suffixesRe.FindStringSubmatch(file)
+
+	// no suffixes are found and empty suffixes are allowed
+	if len(res) == 0 && stringSliceContains(p.env.FileSuffixes, "") {
+		p.logger.Debugf("Not skipping file based on empty suffix!")
+		return false, nil
 	}
 
-	logger.Infof("No suffix found for file!")
-	return "", nil
-}
+	for _, suffix := range res {
+		logger.Debugf("Found suffix '%s'", suffix)
+		suffix = strings.Replace(suffix, "@", "", -1)
+		if stringSliceContains(p.env.FileSuffixes, suffix) {
+			p.logger.Debugf("Suffix allowed on environment: '%s'", suffix)
+			return false, nil
+		}
+	}
 
-// skipOnSuffix boolean, returns true when suffix is not in allowed slice.
-func (p *Plan) skipOnSuffix(suffix string) bool {
-	// when suffix string is not present in the fileSuffixes slice
-	return !stringSliceContains(p.env.FileSuffixes, suffix)
+	return true, nil
 }
 
 // NewPlan creates a new Plan type instance.
