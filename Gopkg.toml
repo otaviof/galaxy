@@ -8,6 +8,11 @@
     non-go = false
     unused-packages = false
 
+  [[prune.project]]
+    name = "github.com/otaviof/vault-handler"
+    non-go = false
+    unused-packages = false
+
 [[constraint]]
   name = "github.com/sirupsen/logrus"
   version = "1.0.6"
@@ -23,6 +28,14 @@
 [[constraint]]
   name = "github.com/spf13/cobra"
   version = "0.0.3"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/buildkite/interpolate"
+
+[[constraint]]
+  name = "github.com/otaviof/vault-handler"
+  version = "0.2.1"
 
 [[constraint]]
   name = "github.com/Eneco/landscaper"
@@ -83,6 +96,7 @@
 [[override]]
   name = "github.com/docker/docker"
   revision  = "4f3616fb1c112e206b88cb7a9922bf49067a7756"
-[[constraint]]
-  branch = "master"
-  name = "github.com/buildkite/interpolate"
+
+[[override]]
+  name = "github.com/sirupsen/logrus"
+  version = "1.4.0"
