@@ -9,10 +9,8 @@ import (
 var app *Galaxy
 
 func TestGalaxyNew(t *testing.T) {
-	var dotGalaxy, _ = NewDotGalaxy("../../test/galaxy.yaml")
-	var cmdArgs = make(map[string]string)
-
-	app = NewGalaxy(dotGalaxy, cmdArgs)
+	dotGalaxy, _ = NewDotGalaxy("../../test/galaxy.yaml")
+	app = NewGalaxy(dotGalaxy, NewConfig())
 
 	assert.NotNil(t, app)
 }

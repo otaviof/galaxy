@@ -10,9 +10,9 @@ import (
 type Galaxy struct {
 	logger      *log.Entry            // logger
 	dotGalaxy   *DotGalaxy            // global configuration
-	cmdArgs     map[string]string     // command-line arguments
-	originalCtx map[string][]*Context // original context per environment
-	modifiedCtx map[string][]*Context // modified context per environment
+	config      *Config               // runtime configuration
+	originalCtx map[string][]*Context // original contexts per environment
+	modifiedCtx map[string][]*Context // modified contexts per environment
 }
 
 // actOnContext called during Loop method
@@ -94,11 +94,11 @@ func (a *Galaxy) GetModifiedContextMap() map[string][]*Context {
 }
 
 // NewGalaxy instantiages a new application instance.
-func NewGalaxy(dotGalaxy *DotGalaxy, cmdArgs map[string]string) *Galaxy {
+func NewGalaxy(dotGalaxy *DotGalaxy, config *Config) *Galaxy {
 	return &Galaxy{
 		logger:      log.WithField("type", "galaxy"),
 		dotGalaxy:   dotGalaxy,
-		cmdArgs:     cmdArgs,
+		config:      config,
 		originalCtx: make(map[string][]*Context),
 		modifiedCtx: make(map[string][]*Context),
 	}
