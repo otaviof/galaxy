@@ -4,7 +4,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/xlab/treeprint"
+
+	"github.com/otaviof/galaxy/pkg/galaxy"
 )
 
 var treeCmd = &cobra.Command{
@@ -15,31 +16,11 @@ var treeCmd = &cobra.Command{
 }
 
 func runTreeCmd(cmd *cobra.Command, args []string) {
-	p := plan()
-	t := treeprint.New()
-
-	for env, ctxs := range p {
-		branch := t.AddBranch(env)
-		for _, ctx := range ctxs {
-			for ns, releases := range ctx.Releases {
-				branch := branch.AddBranch(ns)
-				for _, release := range releases {
-					branch := branch.AddBranch(fmt.Sprintf("%s (%s)",
-						release.File, release.Component.Release.Chart,
-					))
-					branch.AddNode(fmt.Sprintf("%s (v%s)",
-						release.Component.Name, release.Component.Release.Version,
-					))
-				}
-			}
-		}
-	}
-
-	fmt.Println(t.String())
+	data := plan()
+	printer := galaxy.NewPrinter(cfg, data)
+	fmt.Println(printer.Tree())
 }
 
 func init() {
-	// flags := treeCmd.PersistentFlags()
-
 	rootCmd.AddCommand(treeCmd)
 }
