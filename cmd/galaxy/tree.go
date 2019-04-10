@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
 )
@@ -20,7 +21,7 @@ func runTreeCmd(cmd *cobra.Command, args []string) {
 	for env, ctxs := range p {
 		branch := t.AddBranch(env)
 		for _, ctx := range ctxs {
-			for ns, releases := range ctx.GetNamespaceReleasesMap() {
+			for ns, releases := range ctx.Releases {
 				branch := branch.AddBranch(ns)
 				for _, release := range releases {
 					branch := branch.AddBranch(fmt.Sprintf("%s (%s)",
