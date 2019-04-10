@@ -8,12 +8,15 @@ import (
 
 // Galaxy holds application runtime items
 type Galaxy struct {
-	logger      *log.Entry            // logger
-	dotGalaxy   *DotGalaxy            // global configuration
-	config      *Config               // runtime configuration
-	originalCtx map[string][]*Context // original contexts per environment
-	modifiedCtx map[string][]*Context // modified contexts per environment
+	logger    *log.Entry // logger
+	dotGalaxy *DotGalaxy // global configuration
+	cfg       *Config    // runtime configuration
+	original  Data       // original contexts per environment
+	Modified  Data       // modified contexts per environment
 }
+
+// Data belonging to Galaxy, having environment name as key and a list of contexts
+type Data map[string][]*Context
 
 // actOnContext called during Loop method
 type actOnContext func(logger *log.Entry, env string, ctx *Context) error
@@ -25,7 +28,7 @@ func (a *Galaxy) Inspect() error {
 	}
 
 	return a.Loop(func(logger *log.Entry, env string, ctx *Context) error {
-		a.originalCtx[env] = append(a.originalCtx[env], ctx)
+		a.original[env] = append(a.original[env], ctx)
 		return nil
 	})
 }
@@ -47,7 +50,7 @@ func (a *Galaxy) Plan() error {
 			return err
 		}
 
-		a.modifiedCtx[envName] = append(a.modifiedCtx[envName], modified)
+		a.Modified[envName] = append(a.Modified[envName], modified)
 		return nil
 	})
 }
@@ -87,19 +90,13 @@ func (a *Galaxy) Loop(fn actOnContext) error {
 	return nil
 }
 
-// GetModifiedContextMap exposes the modified contexts that have been stored by Plan. It organizes
-// the planing per environment, a string used a map's key.
-func (a *Galaxy) GetModifiedContextMap() map[string][]*Context {
-	return a.modifiedCtx
-}
-
 // NewGalaxy instantiages a new application instance.
 func NewGalaxy(dotGalaxy *DotGalaxy, config *Config) *Galaxy {
 	return &Galaxy{
-		logger:      log.WithField("type", "galaxy"),
-		dotGalaxy:   dotGalaxy,
-		config:      config,
-		originalCtx: make(map[string][]*Context),
-		modifiedCtx: make(map[string][]*Context),
+		logger:    log.WithField("type", "galaxy"),
+		dotGalaxy: dotGalaxy,
+		cfg:       config,
+		original:  make(Data),
+		Modified:  make(Data),
 	}
 }
