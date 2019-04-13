@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/buildkite/interpolate"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,7 +24,7 @@ func (p *Plan) ContextForEnvironment() (*Context, error) {
 	if err = p.filter(); err != nil {
 		return nil, err
 	}
-	if p.env.Transform.ReleasePrefix != "" || p.env.Transform.ReleaseSuffix != "" {
+	if p.env.Transform.ReleasePrefix != "" {
 		if err = p.renameReleases(); err != nil {
 			return nil, err
 		}
@@ -77,31 +76,21 @@ func (p *Plan) filter() error {
 // renameReleases execute the rename of releases passing a method along, it also exports a number
 // of interpolation variables to be replacted on release name.
 func (p *Plan) renameReleases() error {
-	logger := p.logger.WithFields(log.Fields{
-		"prefix": p.env.Transform.ReleasePrefix,
-		"suffix": p.env.Transform.ReleaseSuffix,
-	})
+	logger := p.logger.WithField("prefix", p.env.Transform.ReleasePrefix)
 	logger.Info("Renaming releases...")
 
-	return p.envCtx.RenameReleases(func(namespace, name string) (string, error) {
+	return p.envCtx.RenameReleases(func(ns, name string) (string, error) {
+		var releasePrefix string
 		var err error
 
-		placeholders := interpolate.NewSliceEnv([]string{
-			fmt.Sprintf("NAMESPACE=%s", namespace),
-			fmt.Sprintf("RELEASE_NAMESPACE=%s", namespace),
-			fmt.Sprintf("RELEASE_NAME=%s", name),
-			fmt.Sprintf("RELEASE_PREFIX=%s", p.env.Transform.ReleasePrefix),
-			fmt.Sprintf("RELEASE_SUFFIX=%s", p.env.Transform.ReleaseSuffix),
-			fmt.Sprintf("NAMESPACE_PREFIX=%s", p.env.Transform.NamespacePrefix),
-			fmt.Sprintf("NAMESPACE_SUFFIX=%s", p.env.Transform.NamespaceSuffix),
-		})
-		releaseName := fmt.Sprintf("%s%s%s",
-			p.env.Transform.ReleasePrefix, name, p.env.Transform.ReleaseSuffix,
-		)
-		if releaseName, err = interpolate.Interpolate(placeholders, releaseName); err != nil {
+		if releasePrefix, err = p.env.Interpolate(p.env.Transform.ReleasePrefix, []string{
+			fmt.Sprintf("NAMESPACE=%s", ns),
+		}); err != nil {
 			return "", err
 		}
-		logger.WithFields(log.Fields{"namespace": namespace, "name": name}).
+
+		releaseName := fmt.Sprintf("%s%s", releasePrefix, name)
+		logger.WithFields(log.Fields{"namespace": ns, "name": name}).
 			Debugf("Release named '%s' is renamed to '%s'", name, releaseName)
 
 		return releaseName, nil

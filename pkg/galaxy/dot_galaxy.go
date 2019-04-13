@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 
+	"github.com/buildkite/interpolate"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -32,7 +33,6 @@ type Transform struct {
 	NamespacePrefix string `yaml:"namespacePrefix"`
 	NamespaceSuffix string `yaml:"namespaceSuffix"`
 	ReleasePrefix   string `yaml:"releasePrefix"`
-	ReleaseSuffix   string `yaml:"releaseSuffix"`
 }
 
 // Namespaces in kubernetes, representation to where to find namespace directories and releases
@@ -40,6 +40,17 @@ type Namespaces struct {
 	BaseDir    string   `yaml:"baseDir"`
 	Extensions []string `yaml:"extensions"`
 	Names      []string `yaml:"names"`
+}
+
+// Interpolate a string based on Environment attributes, plus whats informed.
+func (e *Environment) Interpolate(str string, placeholders []string) (string, error) {
+	placeholders = append(placeholders, fmt.Sprintf("RELEASE_PREFIX=%s", e.Transform.ReleasePrefix))
+	placeholders = append(placeholders, fmt.Sprintf("NAMESPACE_PREFIX=%s", e.Transform.NamespacePrefix))
+	placeholders = append(placeholders, fmt.Sprintf("NAMESPACE_SUFFIX=%s", e.Transform.NamespaceSuffix))
+
+	sliceEnv := interpolate.NewSliceEnv(placeholders)
+
+	return interpolate.Interpolate(sliceEnv, str)
 }
 
 // ListNamespaces exposes the list with namespace names.
