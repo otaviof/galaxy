@@ -13,8 +13,8 @@ func fatal(msg string, args ...interface{}) {
 	os.Exit(1)
 }
 
-// exists Check if path exists, boolean return.
-func exists(path string) bool {
+// fileExists Check if path exists, boolean return.
+func fileExists(path string) bool {
 	if _, err := os.Stat(path); err != nil {
 		return false
 	}
@@ -23,7 +23,7 @@ func exists(path string) bool {
 
 // readFile Wrap up a ioutil call, using fatal log in case of error.
 func readFile(path string) []byte {
-	if !exists(path) {
+	if !fileExists(path) {
 		fatal("[ERROR] Can't find file '%s'", path)
 	}
 

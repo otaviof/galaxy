@@ -1,12 +1,13 @@
 package galaxy
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestUtilsExists(t *testing.T) {
-	assert.True(t, exists("../../test/galaxy.yaml"))
+func TestUtilsFileExists(t *testing.T) {
+	assert.True(t, fileExists("../../test/galaxy.yaml"))
 }
 
 func TestUtilsReadFile(t *testing.T) {

@@ -91,11 +91,11 @@ func (a *Galaxy) Loop(fn actOnContext) error {
 }
 
 // NewGalaxy instantiages a new application instance.
-func NewGalaxy(dotGalaxy *DotGalaxy, config *Config) *Galaxy {
+func NewGalaxy(dotGalaxy *DotGalaxy, cfg *Config) *Galaxy {
 	return &Galaxy{
 		logger:    log.WithField("type", "galaxy"),
 		dotGalaxy: dotGalaxy,
-		cfg:       config,
+		cfg:       cfg,
 		original:  make(Data),
 		Modified:  make(Data),
 	}
