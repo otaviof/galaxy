@@ -1,7 +1,7 @@
 ---
 name: app2
 release:
-  chart: repo/chart:0.0.1
+  chart: stable/grafana:2.3.3
   version: 0.0.1
 configuration: {}
 environments: {}
