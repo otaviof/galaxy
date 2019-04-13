@@ -35,3 +35,11 @@ func TestConfigGetEnvironments(t *testing.T) {
 	cfg.Environments = "one,two"
 	assert.Equal(t, []string{"one", "two"}, cfg.GetEnvironments())
 }
+
+func TestConfigGetNamespaces(t *testing.T) {
+	cfg.Namespaces = "one"
+	assert.Equal(t, []string{"one"}, cfg.GetNamespaces())
+
+	cfg.Namespaces = "one,two"
+	assert.Equal(t, []string{"one", "two"}, cfg.GetNamespaces())
+}

@@ -11,6 +11,7 @@ type Config struct {
 	DryRun        bool   // dry-run flag
 	LogLevel      string // log verboseness
 	Environments  string // target environment names, comma separated
+	Namespaces    string // target namespaces, comma separated
 
 	*LandscaperConfig
 }
@@ -32,12 +33,31 @@ type LandscaperConfig struct {
 
 // GetDisabledStages return a slice of strings based on disabled stages.
 func (l *LandscaperConfig) GetDisabledStages() []string {
-	return strings.Split(l.DisabledStages, ",")
+	if l.DisabledStages == "" {
+		return []string{}
+	}
+	return splitOnComma(l.DisabledStages)
 }
 
 // GetEnvironments as slice of strings based on environments.
 func (c *Config) GetEnvironments() []string {
-	return strings.Split(c.Environments, ",")
+	if c.Environments == "" {
+		return []string{}
+	}
+	return splitOnComma(c.Environments)
+}
+
+// GetNamespaces slice of strings based on namespaces.
+func (c *Config) GetNamespaces() []string {
+	if c.Namespaces == "" {
+		return []string{}
+	}
+	return splitOnComma(c.Namespaces)
+}
+
+// splitOnComma using strings.Split
+func splitOnComma(str string) []string {
+	return strings.Split(str, ",")
 }
 
 // NewConfig with default values.
@@ -46,6 +66,8 @@ func NewConfig() *Config {
 		LogLevel:      "error",
 		DryRun:        false,
 		DotGalaxyPath: ".galaxy.yaml",
+		Environments:  "",
+		Namespaces:    "",
 		LandscaperConfig: &LandscaperConfig{
 			HelmHome:        os.ExpandEnv("${HOME}/.helm"),
 			TillerNamespace: "kube-system",

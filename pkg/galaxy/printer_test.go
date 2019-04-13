@@ -5,12 +5,15 @@ import (
 	"strings"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 var printer *Printer
 
 func TestPrinterNew(t *testing.T) {
+	log.SetLevel(log.TraceLevel)
+
 	dotGalaxy, _ := NewDotGalaxy("../../test/galaxy.yaml")
 	g := NewGalaxy(dotGalaxy, NewConfig())
 	g.Plan()
@@ -20,7 +23,6 @@ func TestPrinterNew(t *testing.T) {
 func TestPrinterTree(t *testing.T) {
 	tree := printer.Tree()
 	fmt.Println(tree)
-
 }
 
 func TestPrinterTable(t *testing.T) {

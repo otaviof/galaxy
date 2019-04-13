@@ -20,7 +20,7 @@ func TestPlanNewPlan(t *testing.T) {
 
 	ctx.InspectDir("ns1", baseDir, dotGalaxy.Spec.Namespaces.Extensions)
 
-	plan = NewPlan(env, ctx)
+	plan = NewPlan(env, []string{}, ctx)
 }
 
 func TestPlanSkipFile(t *testing.T) {

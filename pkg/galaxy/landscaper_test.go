@@ -21,7 +21,7 @@ func TestLandscaperNewLandscaper(t *testing.T) {
 	cfg := NewConfig()
 	cfg.KubeConfig = os.Getenv("KUBECONFIG")
 
-	landscaper = NewLandscaper(cfg.LandscaperConfig, env, "ns1", g.Modified["ns1-d"])
+	landscaper = NewLandscaper(cfg.LandscaperConfig, env, "ns1-d", g.Modified["dev"])
 }
 
 func TestLandscaperBootstrap(t *testing.T) {

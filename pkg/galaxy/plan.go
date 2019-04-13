@@ -10,10 +10,11 @@ import (
 
 // Plan holds methods to plan releases for a given environment.
 type Plan struct {
-	logger *log.Entry   // logger
-	env    *Environment // environment subject to planing
-	ctx    *Context     // current context
-	envCtx *Context     // context planned for environment
+	logger     *log.Entry   // logger
+	env        *Environment // environment subject to planing
+	namespaces []string     // list of selected namespaces
+	ctx        *Context     // current context
+	envCtx     *Context     // context planned for environment
 }
 
 // ContextForEnvironment narrow down context to comply with the rules defined in Environment.
@@ -46,6 +47,10 @@ func (p *Plan) filter() error {
 
 		if p.skipOnNamespace(ns) {
 			logger.Info("Skipping namespace in environment!")
+			continue
+		}
+		if len(p.namespaces) > 0 && !stringSliceContains(p.namespaces, ns) {
+			logger.Infof("Namespace '%s' is skipped, not selected.", ns)
 			continue
 		}
 
@@ -161,11 +166,14 @@ func (p *Plan) skipFile(file string) (bool, error) {
 }
 
 // NewPlan creates a new Plan type instance.
-func NewPlan(env *Environment, ctx *Context) *Plan {
+func NewPlan(env *Environment, namespaces []string, ctx *Context) *Plan {
 	return &Plan{
-		logger: log.WithFields(log.Fields{"type": "plan", "env": env.Name}),
-		env:    env,
-		ctx:    ctx,
-		envCtx: NewContext(),
+		logger: log.WithFields(log.Fields{
+			"type": "plan", "env": env.Name, "namespaces": namespaces,
+		}),
+		env:        env,
+		namespaces: namespaces,
+		ctx:        ctx,
+		envCtx:     NewContext(),
 	}
 }

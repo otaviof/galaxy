@@ -40,12 +40,17 @@ func (a *Galaxy) Plan() error {
 		var modified *Context
 		var err error
 
+		if len(a.cfg.GetEnvironments()) > 0 && !stringSliceContains(a.cfg.GetEnvironments(), envName) {
+			logger.Infof("Skipping environment '%s'!", envName)
+			return nil
+		}
+
 		if env, err = a.dotGalaxy.GetEnvironment(envName); err != nil {
 			return err
 		}
 
 		logger.Info("Planing...")
-		plan := NewPlan(env, ctx)
+		plan := NewPlan(env, a.cfg.GetNamespaces(), ctx)
 		if modified, err = plan.ContextForEnvironment(); err != nil {
 			return err
 		}
