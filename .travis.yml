@@ -8,6 +8,7 @@ before_script:
   - .ci/install-helm.sh
   - make dep
 script:
+  - export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
   - make bootstrap
   - make
   - make test

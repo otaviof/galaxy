@@ -268,9 +268,9 @@ func (l *Landscaper) loadKubeClient() error {
 
 // getKubeRestConfig read kube-config from home, or alternative path.
 func (l *Landscaper) getKubeRestConfig() (*rest.Config, error) {
-	var kubeCfg string
+	kubeCfg := l.cfg.KubeConfig
 
-	if l.cfg.KubeConfig == "" {
+	if kubeCfg == "" {
 		homeDir := os.Getenv("HOME")
 		if homeDir == "" {
 			return nil, fmt.Errorf("environment HOME is empty, can't find '~/.kube/config' file")

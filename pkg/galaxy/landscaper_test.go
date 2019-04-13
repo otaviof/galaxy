@@ -1,6 +1,7 @@
 package galaxy
 
 import (
+	"os"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -18,6 +19,7 @@ func TestLandscaperNewLandscaper(t *testing.T) {
 	env, _ := dotGalaxy.GetEnvironment("dev")
 
 	cfg := NewConfig()
+	cfg.KubeConfig = os.Getenv("KUBECONFIG")
 
 	landscaper = NewLandscaper(cfg.LandscaperConfig, env, "ns1", g.Modified["ns1-d"])
 }
