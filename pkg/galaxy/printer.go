@@ -12,7 +12,6 @@ import (
 // Printer is a helper to display galaxy related data in command-line.
 type Printer struct {
 	logger *log.Entry // logger
-	cfg    *Config    // runtime configuration
 	data   Data       // galaxy data
 }
 
@@ -146,6 +145,6 @@ func (p *Printer) formatSecretData(secret SecretManifest) string {
 }
 
 // NewPrinter creates new Printer instance.
-func NewPrinter(cfg *Config, data Data) *Printer {
-	return &Printer{logger: log.WithField("type", "printer"), cfg: cfg, data: data}
+func NewPrinter(data Data) *Printer {
+	return &Printer{logger: log.WithField("type", "printer"), data: data}
 }

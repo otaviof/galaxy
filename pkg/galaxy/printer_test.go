@@ -14,7 +14,7 @@ func TestPrinterNew(t *testing.T) {
 	dotGalaxy, _ := NewDotGalaxy("../../test/galaxy.yaml")
 	g := NewGalaxy(dotGalaxy, NewConfig())
 	g.Plan()
-	printer = NewPrinter(NewConfig(), g.Modified)
+	printer = NewPrinter(g.Modified)
 }
 
 func TestPrinterTree(t *testing.T) {
