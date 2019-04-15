@@ -10,11 +10,12 @@ import (
 
 // Plan holds methods to plan releases for a given environment.
 type Plan struct {
-	logger     *log.Entry   // logger
-	env        *Environment // environment subject to planing
-	namespaces []string     // list of selected namespaces
-	ctx        *Context     // current context
-	envCtx     *Context     // context planned for environment
+	logger     *log.Entry        // logger
+	env        *Environment      // environment subject to planing
+	namespaces []string          // list of selected namespaces
+	ctx        *Context          // current context
+	envCtx     *Context          // context planned for environment
+	OriginalNs map[string]string // new and ori
 }
 
 // ContextForEnvironment narrow down context to comply with the rules defined in Environment.
@@ -106,12 +107,15 @@ func (p *Plan) renameReleases() error {
 func (p *Plan) renameNamespaces() {
 	p.logger.Infof("Renaming namespaces...")
 	p.envCtx.RenameNamespaces(func(ns string) string {
+		name := ns
 		if p.env.Transform.NamespacePrefix != "" || p.env.Transform.NamespaceSuffix != "" {
-			return fmt.Sprintf("%s%s%s",
+			name = fmt.Sprintf("%s%s%s",
 				p.env.Transform.NamespacePrefix, ns, p.env.Transform.NamespaceSuffix,
 			)
 		}
-		return ns
+		// saving original namespace name
+		p.OriginalNs[name] = ns
+		return name
 	})
 }
 
@@ -175,5 +179,6 @@ func NewPlan(env *Environment, namespaces []string, ctx *Context) *Plan {
 		namespaces: namespaces,
 		ctx:        ctx,
 		envCtx:     NewContext(),
+		OriginalNs: make(map[string]string),
 	}
 }

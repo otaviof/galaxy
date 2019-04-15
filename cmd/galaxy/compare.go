@@ -16,8 +16,8 @@ var compareCmd = &cobra.Command{
 }
 
 func runCompareCmd(cmd *cobra.Command, args []string) {
-	data := plan()
-	printer := galaxy.NewPrinter(cfg, data)
+	g := galaxyPlan()
+	printer := galaxy.NewPrinter(g.Modified)
 	fmt.Println(printer.Table())
 }
 

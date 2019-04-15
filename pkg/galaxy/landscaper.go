@@ -25,7 +25,6 @@ import (
 type Landscaper struct {
 	logger     *log.Entry           // logger
 	cfg        *LandscaperConfig    // landscaper runtime configuration
-	ns         string               // target namespace
 	env        *Environment         // environment instance
 	ctxs       []*Context           // slice of Context instances
 	kubeClient *clientset.Clientset // kubernetes api client
@@ -59,9 +58,11 @@ func (l *Landscaper) Apply() error {
 }
 
 // Bootstrap prepare Landscaper requirements and components.
-func (l *Landscaper) Bootstrap(dryRun bool) error {
+func (l *Landscaper) Bootstrap(ns, originalNs string, dryRun bool) error {
 	var e *ldsc.Environment
 	var err error
+
+	l.logger.Infof("Bootstraping Landscaper for namespace '%s' (originally '%s')", ns, originalNs)
 
 	if err = l.loadKubeClient(); err != nil {
 		return err
@@ -70,7 +71,7 @@ func (l *Landscaper) Bootstrap(dryRun bool) error {
 		return err
 	}
 
-	if e, err = l.setupLandscaperEnvironment(dryRun); err != nil {
+	if e, err = l.setup(ns, originalNs, dryRun); err != nil {
 		return err
 	}
 
@@ -100,24 +101,25 @@ func (l *Landscaper) Bootstrap(dryRun bool) error {
 	return nil
 }
 
-// setupLandscaperEnvironment
-func (l *Landscaper) setupLandscaperEnvironment(dryRun bool) (*ldsc.Environment, error) {
+// setup
+func (l *Landscaper) setup(ns, originalNs string, dryRun bool) (*ldsc.Environment, error) {
 	var releasePrefix string
 	var err error
 
 	if l.env.Transform.ReleasePrefix != "" {
 		if releasePrefix, err = l.env.Interpolate(l.env.Transform.ReleasePrefix, []string{
-			fmt.Sprintf("NAMESPACE=%s", l.ns),
+			fmt.Sprintf("NAMESPACE=%s", originalNs),
 		}); err != nil {
 			return nil, err
 		}
 	}
 
 	return &ldsc.Environment{
+		DryRun:                    dryRun,
 		Context:                   l.cfg.KubeContext,
-		Namespace:                 l.ns,
+		Namespace:                 ns,
 		Environment:               l.env.Name,
-		ComponentFiles:            l.pickReleaseFiles(),
+		ComponentFiles:            l.pickReleaseFiles(ns),
 		ReleaseNamePrefix:         releasePrefix,
 		HelmHome:                  l.cfg.HelmHome,
 		TillerNamespace:           l.cfg.TillerNamespace,
@@ -130,14 +132,14 @@ func (l *Landscaper) setupLandscaperEnvironment(dryRun bool) (*ldsc.Environment,
 }
 
 // pickReleaseFiles select release components for the target namespace.
-func (l *Landscaper) pickReleaseFiles() []string {
+func (l *Landscaper) pickReleaseFiles(ns string) []string {
 	var files []string
 	var releases []Release
 	var found bool
 
 	for _, ctx := range l.ctxs {
 		// checking releases for configured namespace only
-		if releases, found = ctx.Releases[l.ns]; !found {
+		if releases, found = ctx.Releases[ns]; !found {
 			continue
 		}
 		for _, release := range releases {
@@ -209,27 +211,28 @@ func (l *Landscaper) getHelmTillerAddress() (string, error) {
 
 // loadHelmClient creates a new instance of Helm API client by direct access or port-forward.
 func (l *Landscaper) loadHelmClient() error {
-	var hostname string
+	var address string
 	var err error
 
-	l.logger.Info("Creating a new Helm API client...")
+	logger := l.logger.WithField("helmHome", l.cfg.HelmHome)
+	logger.Info("Creating a new Helm API client...")
 
-	if hostname, err = l.getHelmTillerAddress(); err != nil {
+	if address, err = l.getHelmTillerAddress(); err != nil {
 		return err
 	}
 
-	l.logger.Infof("Connecting to Helm via '%s' (timeout %d seconds)", hostname, l.cfg.TillerTimeout)
-	l.helmClient = helm.NewClient(helm.Host(hostname), helm.ConnectTimeout(l.cfg.TillerTimeout))
+	logger.Infof("Connecting to Helm via '%s' (timeout %d seconds)", address, l.cfg.TillerTimeout)
+	l.helmClient = helm.NewClient(helm.Host(address), helm.ConnectTimeout(l.cfg.TillerTimeout))
 	if err = l.helmClient.PingTiller(); err != nil {
 		return err
 	}
 
-	l.logger.Infof("Comparing Helm's Tiller version with local ('%s')", helmversion.Version)
+	logger.Infof("Comparing Helm's Tiller version with local ('%s')", helmversion.Version)
 	version, err := l.helmClient.GetVersion()
 	if err != nil {
 		return err
 	}
-	l.logger.Infof("Tiller version: '%s'", version.Version.SemVer)
+	logger.Infof("Tiller version: '%s'", version.Version.SemVer)
 	if !helmversion.IsCompatible(helmversion.Version, version.Version.SemVer) {
 		return fmt.Errorf("incompatible version numbers, tiller '%s' this '%s'",
 			version.Version, helmversion.Version)
@@ -287,12 +290,6 @@ func (l *Landscaper) getKubeRestConfig() (*rest.Config, error) {
 }
 
 // NewLandscaper instance a new Landscaper object.
-func NewLandscaper(cfg *LandscaperConfig, env *Environment, ns string, ctxs []*Context) *Landscaper {
-	return &Landscaper{
-		logger: log.WithField("type", "landscaper"),
-		cfg:    cfg,
-		env:    env,
-		ns:     ns,
-		ctxs:   ctxs,
-	}
+func NewLandscaper(cfg *LandscaperConfig, env *Environment, ctxs []*Context) *Landscaper {
+	return &Landscaper{logger: log.WithField("type", "landscaper"), cfg: cfg, env: env, ctxs: ctxs}
 }

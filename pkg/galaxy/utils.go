@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // fatal replacement for panic during runtime, no strack-trace.
@@ -59,4 +61,15 @@ func stringSliceContains(slice []string, str string) bool {
 	}
 
 	return false
+}
+
+// SetLogLevel parse and set logrus log-level.
+func SetLogLevel(levelStr string) {
+	var level log.Level
+	var err error
+
+	if level, err = log.ParseLevel(levelStr); err != nil {
+		log.Fatalf("[ERROR] Setting log-level ('%s'): %s", levelStr, err)
+	}
+	log.SetLevel(level)
 }

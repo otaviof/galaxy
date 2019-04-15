@@ -1,10 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/otaviof/galaxy/pkg/galaxy"
 )
@@ -15,52 +17,82 @@ var rootCmd = &cobra.Command{
 	Long:  ``,
 }
 
-var cfg = &galaxy.Config{}
+// configFromEnv load runtime configuration from environment, which also includes command-line
+// parameters by using Viper.
+func configFromEnv() *galaxy.Config {
+	return &galaxy.Config{
+		DotGalaxyPath: viper.GetString("config"),
+		DryRun:        viper.GetBool("dry-run"),
+		Environments:  viper.GetString("env"),
+		Namespaces:    viper.GetString("namespace"),
+		LogLevel:      viper.GetString("log-level"),
+		LandscaperConfig: &galaxy.LandscaperConfig{
+			DisabledStages:   viper.GetString("disable"),
+			HelmHome:         os.ExpandEnv(viper.GetString("helm-home")),
+			InCluster:        viper.GetBool("in-cluster"),
+			KubeConfig:       viper.GetString("kube-config"),
+			KubeContext:      viper.GetString("kube-context"),
+			OverrideFile:     viper.GetString("override-file"),
+			TillerNamespace:  viper.GetString("tiller-namespace"),
+			TillerPort:       viper.GetInt("tiller-port"),
+			TillerTimeout:    viper.GetInt64("tiller-timeout"),
+			WaitForResources: viper.GetBool("wait"),
+			WaitTimeout:      viper.GetInt64("wait-timeout"),
+		},
+	}
+}
 
 // bootstrap reads the configuration from command-line informed place, and set log-level
-func bootstrap() *galaxy.DotGalaxy {
+func bootstrap(cfg *galaxy.Config) *galaxy.DotGalaxy {
 	var dotGalaxy *galaxy.DotGalaxy
-	var level log.Level
 	var err error
 
 	if dotGalaxy, err = galaxy.NewDotGalaxy(cfg.DotGalaxyPath); err != nil {
 		log.Fatalf("[ERROR] Parsing dot-galaxy file ('%s'): %s", cfg.DotGalaxyPath, err)
 	}
-	if level, err = log.ParseLevel(cfg.LogLevel); err != nil {
-		log.Fatalf("[ERROR] Setting log-level ('%s'): %s", cfg.LogLevel, err)
-	}
-	log.SetLevel(level)
-
 	return dotGalaxy
 }
 
-// plan execute planning phase of Galaxy.
-func plan() galaxy.Data {
-	var err error
+// galaxyPlan return a planned galaxy object.
+func galaxyPlan() *galaxy.Galaxy {
+	cfg := configFromEnv()
+	galaxy.SetLogLevel(cfg.LogLevel)
+	log.Debugf("cfg: %#v", cfg)
 
-	dotGalaxy := bootstrap()
+	dotGalaxy := bootstrap(cfg)
 	g := galaxy.NewGalaxy(dotGalaxy, cfg)
 
-	if err = g.Plan(); err != nil {
+	if err := g.Plan(); err != nil {
 		log.Fatal(err)
 	}
 
-	return g.Modified
+	return g
 }
 
 // init command-line arguments
 func init() {
-	var flags = rootCmd.PersistentFlags()
+	flags := rootCmd.PersistentFlags()
 
-	flags.StringVarP(&cfg.DotGalaxyPath, "config", "c", ".galaxy.yaml", "configuration file.")
-	flags.BoolVarP(&cfg.DryRun, "dry-run", "d", false, "dry-run mode.")
-	flags.StringVarP(&cfg.LogLevel, "log-level", "l", "error", "logging level.")
+	viper.SetEnvPrefix("galaxy")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+
+	flags.String("config", ".galaxy.yaml", "alternative Galaxy manifest file")
+	flags.Bool("dry-run", false, "dry-run mode")
+	flags.String("log-level", "error", "logging level")
+
+	flags.String("env", "", "filter by environments, comma separated list")
+	flags.String("namespace", "", "filter by namespaces, comma separated list")
+
+	if err := viper.BindPFlags(flags); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func main() {
 	var err error
 
 	if err = rootCmd.Execute(); err != nil {
-		panic(fmt.Sprintf("[ERROR] %s", err))
+		log.Fatalf("[ERROR] %s", err)
 	}
 }

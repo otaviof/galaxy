@@ -21,11 +21,11 @@ func TestLandscaperNewLandscaper(t *testing.T) {
 	cfg := NewConfig()
 	cfg.KubeConfig = os.Getenv("KUBECONFIG")
 
-	landscaper = NewLandscaper(cfg.LandscaperConfig, env, "ns1-d", g.Modified["dev"])
+	landscaper = NewLandscaper(cfg.LandscaperConfig, env, g.Modified["dev"])
 }
 
 func TestLandscaperBootstrap(t *testing.T) {
-	err := landscaper.Bootstrap(true)
+	err := landscaper.Bootstrap("ns1-d", "ns1", true)
 	assert.Nil(t, err)
 
 	assert.NotNil(t, landscaper.kubeCfg)

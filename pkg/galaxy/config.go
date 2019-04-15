@@ -16,6 +16,16 @@ type Config struct {
 	*LandscaperConfig
 }
 
+// GetEnvironments as slice of strings based on environments.
+func (c *Config) GetEnvironments() []string {
+	return splitOnComma(c.Environments)
+}
+
+// GetNamespaces slice of strings based on namespaces.
+func (c *Config) GetNamespaces() []string {
+	return splitOnComma(c.Namespaces)
+}
+
 // LandscaperConfig runtime configuration related to Landscaper.
 type LandscaperConfig struct {
 	InCluster        bool   // inside a Kubernetes cluster
@@ -33,30 +43,14 @@ type LandscaperConfig struct {
 
 // GetDisabledStages return a slice of strings based on disabled stages.
 func (l *LandscaperConfig) GetDisabledStages() []string {
-	if l.DisabledStages == "" {
-		return []string{}
-	}
 	return splitOnComma(l.DisabledStages)
 }
 
-// GetEnvironments as slice of strings based on environments.
-func (c *Config) GetEnvironments() []string {
-	if c.Environments == "" {
-		return []string{}
-	}
-	return splitOnComma(c.Environments)
-}
-
-// GetNamespaces slice of strings based on namespaces.
-func (c *Config) GetNamespaces() []string {
-	if c.Namespaces == "" {
-		return []string{}
-	}
-	return splitOnComma(c.Namespaces)
-}
-
-// splitOnComma using strings.Split
+// splitOnComma using strings.Split, or empty slice in case of empty string.
 func splitOnComma(str string) []string {
+	if str == "" {
+		return []string{}
+	}
 	return strings.Split(str, ",")
 }
 
