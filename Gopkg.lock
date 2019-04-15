@@ -55,12 +55,12 @@
   version = "v0.3.1"
 
 [[projects]]
-  branch = "gke"
   digest = "1:2f8715d70bb60aeeab8bcf5c54b06cc7fe40bfdb262f7956304d4766f209e333"
   name = "github.com/Eneco/landscaper"
   packages = ["pkg/landscaper"]
   pruneopts = "T"
-  revision = "8ae21eba7370169e57da3af9aadce2b80fdc7760"
+  revision = "ec840ba7d4dd65be60a7f0e060d99be175b9ae3d"
+  version = "v1.0.22"
 
 [[projects]]
   branch = "master"

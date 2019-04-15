@@ -35,7 +35,7 @@
 
 [[constraint]]
   name = "github.com/Eneco/landscaper"
-  branch = "gke"
+  version = "v1.0.22"
 
 [[override]]
   name = "k8s.io/helm"
