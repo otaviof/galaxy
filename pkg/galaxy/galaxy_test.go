@@ -1,6 +1,7 @@
 package galaxy
 
 import (
+	"os"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -17,6 +18,7 @@ func TestGalaxyNew(t *testing.T) {
 	cfg.DryRun = true
 	cfg.Environments = "dev"
 	cfg.Namespaces = "ns1"
+	cfg.KubeConfig = os.Getenv("KUBECONFIG")
 	app = NewGalaxy(dotGalaxy, cfg)
 
 	assert.NotNil(t, app)
