@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/helm/pkg/helm"
 
 	"github.com/otaviof/galaxy/pkg/galaxy"
 )
@@ -18,20 +18,24 @@ type helmRelease struct {
 	chartVersion string
 }
 
+type helmReleases map[string][]*helmRelease
+
+const EnvName = "dev"
+
 var k *galaxy.KubeClient
 var h *galaxy.HelmClient
 var cfg *galaxy.Config
 var app *galaxy.Galaxy
 
 func TestGalaxy(t *testing.T) {
-	log.SetLevel(log.TraceLevel)
+	galaxy.SetLogLevel("trace")
 
-	prepare(t)
-
+	t.Run("prepare kubernetes and helm clients", prepare)
 	t.Run("DRY-RUN dev environment", dryRunDevEnv)
-	// t.Run("assert nothing is deployed yet", nothingIsDeployed)
+	t.Run("assert nothing is deployed yet", nothingIsDeployed)
 	t.Run("apply dev environment", applyDevEnv)
 	t.Run("inspect dev environment releases", inspectDevEnv)
+	t.Run("clean up", cleanUp)
 }
 
 func prepare(t *testing.T) {
@@ -54,7 +58,7 @@ func bootstrap(t *testing.T, dryRun bool, namespaces string) *galaxy.Galaxy {
 	assert.Nil(t, err)
 
 	cfg.DryRun = dryRun
-	cfg.Environments = "dev"
+	cfg.Environments = EnvName
 	cfg.Namespaces = namespaces
 
 	g := galaxy.NewGalaxy(dotGalaxy, cfg)
@@ -69,7 +73,7 @@ func dryRunDevEnv(t *testing.T) {
 
 	app = bootstrap(t, true, "")
 
-	t.Log("Planing 'dev' environment")
+	t.Logf("Planing %s environment", EnvName)
 	err = app.Plan()
 	assert.Nil(t, err)
 
@@ -96,12 +100,11 @@ func applyDevEnv(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func inspectDevEnv(t *testing.T) {
+func getInstalledReleases(t *testing.T) helmReleases {
 	res, err := h.Client.ListReleases()
 	assert.Nil(t, err)
 
-	// map of namespace name and array of releases
-	installed := make(map[string][]*helmRelease)
+	installed := make(helmReleases)
 
 	// organizing helm releases in a map
 	for _, r := range res.GetReleases() {
@@ -116,8 +119,15 @@ func inspectDevEnv(t *testing.T) {
 		})
 	}
 
+	return installed
+}
+
+func inspectDevEnv(t *testing.T) {
+	// reading installed releases
+	installed := getInstalledReleases(t)
+
 	// extracting environment from modified data
-	data, found := app.Modified["dev"]
+	data, found := app.Modified[EnvName]
 	assert.True(t, found)
 
 	for _, ctx := range data {
@@ -127,21 +137,39 @@ func inspectDevEnv(t *testing.T) {
 			assert.True(t, found)
 
 			for _, release := range releases {
-				var exists bool
-
 				name := release.Component.Name
 				chartMeta := release.Component.Release.Chart
+				found := false
 
 				t.Logf("Looking for '%s' (%s) on '%s' namespace", name, chartMeta, ns)
 				for _, r := range installed[ns] {
 					expectedMeta := fmt.Sprintf("%s:%s", r.chartName, r.chartVersion)
 					if name == r.name && strings.Contains(chartMeta, expectedMeta) {
-						exists = true
+						found = true
 						break
 					}
 				}
-				assert.True(t, exists)
+				assert.True(t, found)
 			}
 		}
+	}
+}
+
+func cleanUp(t *testing.T) {
+	var installed []string
+	var err error
+
+	for _, ctx := range app.Modified[EnvName] {
+		for _, releases := range ctx.Releases {
+			for _, release := range releases {
+				installed = append(installed, release.Component.Name)
+			}
+		}
+	}
+
+	for _, name := range installed {
+		t.Logf("Purging release '%s'...", name)
+		_, err = h.Client.DeleteRelease(name, helm.DeletePurge(true))
+		assert.Nil(t, err)
 	}
 }
