@@ -47,7 +47,7 @@ func (c *Context) InspectDir(ns string, dirPath string, exts []string) error {
 	logger.Infof("Inspecting namespace: '%s'", ns)
 
 	if !isDir(dirPath) {
-		return fmt.Errorf("Namespace directory is not found at: '%s'", dirPath)
+		return fmt.Errorf("namespace directory is not found at: '%s'", dirPath)
 	}
 
 	for _, ext := range exts {

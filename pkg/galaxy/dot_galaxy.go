@@ -91,9 +91,9 @@ func (d *DotGalaxy) GetEnvironment(name string) (*Environment, error) {
 
 // NewDotGalaxy to load `.galaxy.yml` file.
 func NewDotGalaxy(filePath string) (*DotGalaxy, error) {
-	dotGalaxy := DotGalaxy{}
-	if err := yaml.Unmarshal(readFile(filePath), &dotGalaxy); err != nil {
+	dotGalaxy := &DotGalaxy{}
+	if err := yaml.Unmarshal(readFile(filePath), dotGalaxy); err != nil {
 		return nil, err
 	}
-	return &dotGalaxy, nil
+	return dotGalaxy, nil
 }
