@@ -5,12 +5,11 @@ import (
 	"path"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 func populatedContext(t *testing.T) *Context {
-	log.SetLevel(log.TraceLevel)
+	SetLogLevel("trace")
 
 	ctx := NewContext()
 	dotGalaxy, err := NewDotGalaxy("../../test/galaxy.yaml")

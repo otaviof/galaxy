@@ -4,14 +4,13 @@ import (
 	"os"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 var app *Galaxy
 
 func TestGalaxyNew(t *testing.T) {
-	log.SetLevel(log.TraceLevel)
+	SetLogLevel("trace")
 
 	dotGalaxy, _ = NewDotGalaxy("../../test/galaxy.yaml")
 	cfg := NewConfig()

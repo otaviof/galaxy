@@ -11,7 +11,7 @@ import (
 var plan *Plan
 
 func TestPlanNewPlan(t *testing.T) {
-	log.SetLevel(log.TraceLevel)
+	SetLogLevel("trace")
 
 	dotGalaxy, _ := NewDotGalaxy("../../test/galaxy.yaml")
 	env, _ := dotGalaxy.GetEnvironment("dev")

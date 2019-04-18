@@ -12,7 +12,7 @@ import (
 var printer *Printer
 
 func TestPrinterNew(t *testing.T) {
-	log.SetLevel(log.TraceLevel)
+	SetLogLevel("trace")
 
 	dotGalaxy, _ := NewDotGalaxy("../../test/galaxy.yaml")
 	g := NewGalaxy(dotGalaxy, NewConfig())
