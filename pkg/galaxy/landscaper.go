@@ -2,37 +2,23 @@ package galaxy
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
 	ldsc "github.com/Eneco/landscaper/pkg/landscaper"
 	log "github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // gcp auth
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/helm/pkg/helm"
-	helmkube "k8s.io/helm/pkg/kube"
-	helmversion "k8s.io/helm/pkg/version"
-	podutil "k8s.io/kubernetes/pkg/api/pod"
-	core "k8s.io/kubernetes/pkg/apis/core"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 // Landscaper represents upstream Landscaper.
 type Landscaper struct {
-	logger     *log.Entry           // logger
-	cfg        *LandscaperConfig    // landscaper runtime configuration
-	env        *Environment         // environment instance
-	ctxs       []*Context           // slice of Context instances
-	kubeClient *clientset.Clientset // kubernetes api client
-	kubeCfg    *rest.Config         // kubernetes client config
-	helmClient helm.Interface       // helm client
-	fileState  ldsc.StateProvider   // landscaper release file state provider
-	helmState  ldsc.StateProvider   // landscaper helm state provider
-	executor   ldsc.Executor        // landscaper executor
+	logger     *log.Entry         // logger
+	cfg        *LandscaperConfig  // landscaper runtime configuration
+	env        *Environment       // environment instance
+	ctxs       []*Context         // slice of Context instances
+	kubeClient *KubeClient        // kubernetes API client
+	helmClient *HelmClient        // helm API client
+	fileState  ldsc.StateProvider // landscaper release file state provider
+	helmState  ldsc.StateProvider // landscaper helm state provider
+	executor   ldsc.Executor      // landscaper executor
 }
 
 // Apply wrapper around Landscaper Apply method.
@@ -75,7 +61,7 @@ func (l *Landscaper) Bootstrap(ns, originalNs string, dryRun bool) error {
 		return err
 	}
 
-	kubeSecrets := ldsc.NewKubeSecretsReadWriteDeleter(l.kubeClient.Core())
+	kubeSecrets := ldsc.NewKubeSecretsReadWriteDeleter(l.kubeClient.Client.Core())
 	secretsReader := ldsc.NewEnvironmentSecretsReader()
 
 	l.fileState = ldsc.NewFileStateProvider(
@@ -87,9 +73,9 @@ func (l *Landscaper) Bootstrap(ns, originalNs string, dryRun bool) error {
 		e.Environment,
 		e.ConfigurationOverrideFile,
 	)
-	l.helmState = ldsc.NewHelmStateProvider(l.helmClient, kubeSecrets, e.ReleaseNamePrefix)
+	l.helmState = ldsc.NewHelmStateProvider(l.helmClient.Client, kubeSecrets, e.ReleaseNamePrefix)
 	l.executor = ldsc.NewExecutor(
-		l.helmClient,
+		l.helmClient.Client,
 		e.ChartLoader,
 		kubeSecrets,
 		e.DryRun,
@@ -151,142 +137,24 @@ func (l *Landscaper) pickReleaseFiles(ns string) []string {
 	return files
 }
 
-// getHelmTillerPodName using Kubernetes API client, look for Tiller's pod.
-func (l *Landscaper) getHelmTillerPodName() (string, error) {
-	var pods *core.PodList
-	var err error
-
-	selector := labels.Set{"app": "helm", "name": "tiller"}.AsSelector()
-	options := metav1.ListOptions{LabelSelector: selector.String()}
-
-	if pods, err = l.kubeClient.Core().Pods(l.cfg.TillerNamespace).List(options); err != nil {
-		return "", err
-	}
-
-	if len(pods.Items) == 0 {
-		return "", fmt.Errorf("can't find tiller pod on '%s' namespace", l.cfg.TillerNamespace)
-	}
-	for _, pod := range pods.Items {
-		if podutil.IsPodReady(&pod) {
-			return pod.ObjectMeta.GetName(), nil
-		}
-	}
-
-	return "", fmt.Errorf("can't find a ready tiller pod on '%s' namespace", l.cfg.TillerNamespace)
-}
-
-// getHelmTillerAddress inspect environment for Helm hostname, or establish a port-forward to tiller.
-func (l *Landscaper) getHelmTillerAddress() (string, error) {
-	var podName string
-	var err error
-
-	hostname := os.Getenv("HELM_HOST")
-	if hostname != "" {
-		l.logger.Infof("Using HELM_HOST environment variable as Tiller hostname '%s'", hostname)
-		return hostname, nil
-	}
-
-	logger := l.logger.WithFields(log.Fields{
-		"tillerNamespace": l.cfg.TillerNamespace,
-		"tillerPort":      l.cfg.TillerPort,
-	})
-	logger.Infof("Setting up port-forward to reach Tiller...")
-
-	if podName, err = l.getHelmTillerPodName(); err != nil {
-		return "", err
-	}
-	logger.Debugf("Tiller pod name '%s'", podName)
-
-	restClient := l.kubeClient.Core().RESTClient()
-	tunnel := helmkube.NewTunnel(
-		restClient, l.kubeCfg, l.cfg.TillerNamespace, podName, l.cfg.TillerPort,
-	)
-
-	if err = tunnel.ForwardPort(); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf(":%d", tunnel.Local), nil
-}
-
-// loadHelmClient creates a new instance of Helm API client by direct access or port-forward.
+// loadHelmClient creates a new instance of Helm API client.
 func (l *Landscaper) loadHelmClient() error {
-	var address string
-	var err error
-
-	logger := l.logger.WithField("helmHome", l.cfg.HelmHome)
-	logger.Info("Creating a new Helm API client...")
-
-	if address, err = l.getHelmTillerAddress(); err != nil {
+	l.helmClient = NewHelmClient(
+		l.cfg.HelmHome, l.cfg.TillerNamespace, l.cfg.TillerPort, l.cfg.TillerTimeout, l.kubeClient,
+	)
+	if err := l.helmClient.Load(); err != nil {
 		return err
 	}
-
-	logger.Infof("Connecting to Helm via '%s' (timeout %d seconds)", address, l.cfg.TillerTimeout)
-	l.helmClient = helm.NewClient(helm.Host(address), helm.ConnectTimeout(l.cfg.TillerTimeout))
-	if err = l.helmClient.PingTiller(); err != nil {
-		return err
-	}
-
-	logger.Infof("Comparing Helm's Tiller version with local ('%s')", helmversion.Version)
-	version, err := l.helmClient.GetVersion()
-	if err != nil {
-		return err
-	}
-	logger.Infof("Tiller version: '%s'", version.Version.SemVer)
-	if !helmversion.IsCompatible(helmversion.Version, version.Version.SemVer) {
-		return fmt.Errorf("incompatible version numbers, tiller '%s' this '%s'",
-			version.Version, helmversion.Version)
-	}
-
 	return nil
 }
 
-// loadKubeClient creates a new Kubernetes API client instance for Landscaper.
+// loadKubeClient creates a new Kubernetes API client instance.
 func (l *Landscaper) loadKubeClient() error {
-	var err error
-
-	logger := log.WithFields(log.Fields{
-		"inCluster":   l.cfg.InCluster,
-		"kubeConfig":  l.cfg.KubeConfig,
-		"kubeContext": l.cfg.KubeContext,
-	})
-
-	if l.cfg.InCluster {
-		logger.Info("Using in-cluster Kubernetes client...")
-		if l.kubeCfg, err = rest.InClusterConfig(); err != nil {
-			return err
-		}
-	} else {
-		logger.Info("Using local kube-config...")
-		if l.kubeCfg, err = l.getKubeRestConfig(); err != nil {
-			return err
-		}
-	}
-
-	if l.kubeClient, err = clientset.NewForConfig(l.kubeCfg); err != nil {
+	l.kubeClient = NewKubeClient(l.cfg.KubeConfig, l.cfg.KubeContext, l.cfg.InCluster)
+	if err := l.kubeClient.Load(); err != nil {
 		return err
 	}
 	return nil
-}
-
-// getKubeRestConfig read kube-config from home, or alternative path.
-func (l *Landscaper) getKubeRestConfig() (*rest.Config, error) {
-	kubeCfg := l.cfg.KubeConfig
-
-	if kubeCfg == "" {
-		homeDir := os.Getenv("HOME")
-		if homeDir == "" {
-			return nil, fmt.Errorf("environment HOME is empty, can't find '~/.kube/config' file")
-		}
-		kubeCfg = filepath.Join(homeDir, ".kube", "config")
-	}
-	l.logger.Infof("Using kubernetes configuration file: '%s'", kubeCfg)
-
-	if !fileExists(kubeCfg) {
-		return nil, fmt.Errorf("can't find kube-config file at: '%s'", kubeCfg)
-	}
-
-	return clientcmd.BuildConfigFromFlags(l.cfg.KubeContext, kubeCfg)
 }
 
 // NewLandscaper instance a new Landscaper object.

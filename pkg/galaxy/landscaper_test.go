@@ -28,7 +28,6 @@ func TestLandscaperBootstrap(t *testing.T) {
 	err := landscaper.Bootstrap("ns1-d", "ns1", true)
 	assert.Nil(t, err)
 
-	assert.NotNil(t, landscaper.kubeCfg)
 	assert.NotNil(t, landscaper.kubeClient)
 	assert.NotNil(t, landscaper.helmClient)
 }
