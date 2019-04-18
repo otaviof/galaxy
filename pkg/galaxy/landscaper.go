@@ -142,19 +142,13 @@ func (l *Landscaper) loadHelmClient() error {
 	l.helmClient = NewHelmClient(
 		l.cfg.HelmHome, l.cfg.TillerNamespace, l.cfg.TillerPort, l.cfg.TillerTimeout, l.kubeClient,
 	)
-	if err := l.helmClient.Load(); err != nil {
-		return err
-	}
-	return nil
+	return l.helmClient.Load()
 }
 
 // loadKubeClient creates a new Kubernetes API client instance.
 func (l *Landscaper) loadKubeClient() error {
 	l.kubeClient = NewKubeClient(l.cfg.KubeConfig, l.cfg.KubeContext, l.cfg.InCluster)
-	if err := l.kubeClient.Load(); err != nil {
-		return err
-	}
-	return nil
+	return l.kubeClient.Load()
 }
 
 // NewLandscaper instance a new Landscaper object.
