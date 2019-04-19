@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
@@ -42,9 +41,7 @@ func prepare(t *testing.T) {
 	var err error
 
 	cfg = galaxy.NewConfig()
-	cfg.KubeConfig = os.Getenv("KUBECONFIG")
-
-	k = galaxy.NewKubeClient(cfg.KubeConfig, cfg.KubeContext, cfg.InCluster)
+	k = galaxy.NewKubeClient(cfg.KubernetesConfig)
 	err = k.Load()
 	assert.Nil(t, err)
 

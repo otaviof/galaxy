@@ -13,7 +13,9 @@ type Config struct {
 	Environments  string // target environment names, comma separated
 	Namespaces    string // target namespaces, comma separated
 
+	*KubernetesConfig
 	*LandscaperConfig
+	*VaultHandlerConfig
 }
 
 // GetEnvironments as slice of strings based on environments.
@@ -26,11 +28,15 @@ func (c *Config) GetNamespaces() []string {
 	return splitOnComma(c.Namespaces)
 }
 
+// KubernetesConfig Kubernetes related configuration applicable to Landscaper and vault-handler.
+type KubernetesConfig struct {
+	KubeConfig  string // path to alternative ~/.kube/config
+	KubeContext string // kubernetes context
+	InCluster   bool   // inside a Kubernetes cluster
+}
+
 // LandscaperConfig runtime configuration related to Landscaper.
 type LandscaperConfig struct {
-	InCluster        bool   // inside a Kubernetes cluster
-	KubeConfig       string // path to alternative ~/.kube/config
-	KubeContext      string // kubernetes context
 	HelmHome         string // helm home folder
 	TillerNamespace  string // helm tiller kubernetes namespace
 	TillerPort       int    // helm tiller pod service port
@@ -44,6 +50,14 @@ type LandscaperConfig struct {
 // GetDisabledStages return a slice of strings based on disabled stages.
 func (l *LandscaperConfig) GetDisabledStages() []string {
 	return splitOnComma(l.DisabledStages)
+}
+
+// VaultHandlerConfig configuration related to vault-handler.
+type VaultHandlerConfig struct {
+	VaultAddr     string // vault api endpoint
+	VaultToken    string // vault token
+	VaultRoleID   string // vault approle role-id
+	VaultSecretID string // vault approle secret-id
 }
 
 // splitOnComma using strings.Split, or empty slice in case of empty string.
@@ -62,6 +76,9 @@ func NewConfig() *Config {
 		DotGalaxyPath: ".galaxy.yaml",
 		Environments:  "",
 		Namespaces:    "",
+		KubernetesConfig: &KubernetesConfig{
+			KubeConfig: os.Getenv("KUBECONFIG"),
+		},
 		LandscaperConfig: &LandscaperConfig{
 			HelmHome:        os.ExpandEnv("${HOME}/.helm"),
 			TillerNamespace: "kube-system",
@@ -69,5 +86,6 @@ func NewConfig() *Config {
 			TillerTimeout:   30,
 			WaitTimeout:     60,
 		},
+		VaultHandlerConfig: &VaultHandlerConfig{},
 	}
 }

@@ -85,7 +85,7 @@ func (g *Galaxy) Apply() error {
 		return err
 	}
 
-	l := NewLandscaper(g.cfg.LandscaperConfig, e, g.Modified[envName])
+	l := NewLandscaper(g.cfg.LandscaperConfig, g.cfg.KubernetesConfig, e, g.Modified[envName])
 	for ns, originalNs := range g.envOriginalNs[envName] {
 		logger.Infof("Handling namespace '%s', original name '%s'", ns, originalNs)
 		if err = l.Bootstrap(ns, originalNs, g.cfg.DryRun); err != nil {

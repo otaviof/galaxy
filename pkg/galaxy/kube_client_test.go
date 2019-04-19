@@ -1,7 +1,6 @@
 package galaxy
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,10 +9,8 @@ import (
 var kubeClient *KubeClient
 
 func TestKubeClientNew(t *testing.T) {
-	cfg = NewConfig()
-	cfg.KubeConfig = os.Getenv("KUBECONFIG")
-
-	kubeClient = NewKubeClient(cfg.KubeConfig, cfg.KubeContext, cfg.InCluster)
+	cfg := NewConfig()
+	kubeClient = NewKubeClient(cfg.KubernetesConfig)
 }
 
 func TestKubeClientLoad(t *testing.T) {

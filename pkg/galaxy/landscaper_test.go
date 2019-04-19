@@ -1,7 +1,6 @@
 package galaxy
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,9 +17,7 @@ func TestLandscaperNewLandscaper(t *testing.T) {
 	env, _ := dotGalaxy.GetEnvironment("dev")
 
 	cfg := NewConfig()
-	cfg.KubeConfig = os.Getenv("KUBECONFIG")
-
-	landscaper = NewLandscaper(cfg.LandscaperConfig, env, g.Modified["dev"])
+	landscaper = NewLandscaper(cfg.LandscaperConfig, cfg.KubernetesConfig, env, g.Modified["dev"])
 }
 
 func TestLandscaperBootstrap(t *testing.T) {

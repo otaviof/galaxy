@@ -12,6 +12,7 @@ import (
 type Landscaper struct {
 	logger     *log.Entry         // logger
 	cfg        *LandscaperConfig  // landscaper runtime configuration
+	kubeCfg    *KubernetesConfig  // kubernetes related configuration
 	env        *Environment       // environment instance
 	ctxs       []*Context         // slice of Context instances
 	kubeClient *KubeClient        // kubernetes API client
@@ -102,7 +103,7 @@ func (l *Landscaper) setup(ns, originalNs string, dryRun bool) (*ldsc.Environmen
 
 	return &ldsc.Environment{
 		DryRun:                    dryRun,
-		Context:                   l.cfg.KubeContext,
+		Context:                   l.kubeCfg.KubeContext,
 		Namespace:                 ns,
 		Environment:               l.env.Name,
 		ComponentFiles:            l.pickReleaseFiles(ns),
@@ -147,11 +148,19 @@ func (l *Landscaper) loadHelmClient() error {
 
 // loadKubeClient creates a new Kubernetes API client instance.
 func (l *Landscaper) loadKubeClient() error {
-	l.kubeClient = NewKubeClient(l.cfg.KubeConfig, l.cfg.KubeContext, l.cfg.InCluster)
+	l.kubeClient = NewKubeClient(l.kubeCfg)
 	return l.kubeClient.Load()
 }
 
 // NewLandscaper instance a new Landscaper object.
-func NewLandscaper(cfg *LandscaperConfig, env *Environment, ctxs []*Context) *Landscaper {
-	return &Landscaper{logger: log.WithField("type", "landscaper"), cfg: cfg, env: env, ctxs: ctxs}
+func NewLandscaper(
+	cfg *LandscaperConfig, kubeCfg *KubernetesConfig, env *Environment, ctxs []*Context,
+) *Landscaper {
+	return &Landscaper{
+		logger:  log.WithField("type", "landscaper"),
+		cfg:     cfg,
+		kubeCfg: kubeCfg,
+		env:     env,
+		ctxs:    ctxs,
+	}
 }

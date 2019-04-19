@@ -1,7 +1,6 @@
 package galaxy
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,10 +9,8 @@ import (
 var helmClient *HelmClient
 
 func TestHelmClientNew(t *testing.T) {
-	cfg = NewConfig()
-	cfg.KubeConfig = os.Getenv("KUBECONFIG")
-
-	k := NewKubeClient(cfg.KubeConfig, cfg.KubeContext, cfg.InCluster)
+	cfg := NewConfig()
+	k := NewKubeClient(cfg.KubernetesConfig)
 	_ = k.Load()
 	helmClient = NewHelmClient(cfg.HelmHome, cfg.TillerNamespace, cfg.TillerPort, cfg.TillerTimeout, k)
 }
