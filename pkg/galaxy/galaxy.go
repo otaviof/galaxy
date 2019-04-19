@@ -37,8 +37,7 @@ func (g *Galaxy) Inspect() error {
 // Plan manage the scope of changes, by checking which release files should be in.
 func (g *Galaxy) Plan() error {
 	g.logger.Infof("Planing for namespaces '%s' on environments '%s'",
-		g.cfg.GetNamespaces(), g.cfg.GetEnvironments(),
-	)
+		g.cfg.GetNamespaces(), g.cfg.GetEnvironments())
 	return g.Loop(func(logger *log.Entry, envName string, ctx *Context) error {
 		var env *Environment
 		var modified *Context
@@ -70,39 +69,24 @@ func (g *Galaxy) Plan() error {
 // Apply changes planned just before.
 func (g *Galaxy) Apply() error {
 	var e *Environment
-	var data []*Context
-	var originalNs map[string]string
-	var found bool
+	var envName string
 	var err error
 
 	g.logger.Infof("DRY-RUN: '%v', Environment: '%s'", g.cfg.DryRun, g.cfg.GetEnvironments())
 
-	if len(g.cfg.GetEnvironments()) != 1 {
-		return fmt.Errorf("a single environment must be informed")
+	if envName, err = g.probeSingleEnv(); err != nil {
+		return err
 	}
-	envName := g.cfg.GetEnvironments()[0]
+
 	logger := g.logger.WithFields(log.Fields{"env": envName, "dryRun": g.cfg.DryRun})
 	logger.Infof("Applying changes for environment...")
 
-	if data, found = g.Modified[envName]; !found {
-		return fmt.Errorf("environment '%s' is not found on planned data", envName)
-	}
-	logger.Debugf("data: '%#v'", data)
-	logger.Debugf("data len: '%d'", len(data))
-
-	for _, c := range data {
-		logger.Debugf("context: '%#v'", c)
-	}
-
-	if originalNs, found = g.envOriginalNs[envName]; !found {
-		return fmt.Errorf("environment '%s' is not found on original namespace names map", envName)
-	}
 	if e, err = g.dotGalaxy.GetEnvironment(envName); err != nil {
 		return err
 	}
 
-	l := NewLandscaper(g.cfg.LandscaperConfig, e, data)
-	for ns, originalNs := range originalNs {
+	l := NewLandscaper(g.cfg.LandscaperConfig, e, g.Modified[envName])
+	for ns, originalNs := range g.envOriginalNs[envName] {
 		logger.Infof("Handling namespace '%s', original name '%s'", ns, originalNs)
 		if err = l.Bootstrap(ns, originalNs, g.cfg.DryRun); err != nil {
 			return err
@@ -142,6 +126,27 @@ func (g *Galaxy) Loop(fn actOnContext) error {
 		}
 	}
 	return nil
+}
+
+// probeSingleEnv make sure a single environment is informed, and it's present in planned data, also
+// original name is able to be found.
+func (g *Galaxy) probeSingleEnv() (string, error) {
+	if len(g.cfg.GetEnvironments()) != 1 {
+		return "", fmt.Errorf("a single environment must be informed")
+	}
+
+	envName := g.cfg.GetEnvironments()[0]
+
+	g.logger.Info("Checking if environment is listed at planned data...")
+	if _, found := g.Modified[envName]; !found {
+		return "", fmt.Errorf("environment '%s' is not found on planned data", envName)
+	}
+	g.logger.Debug("Retrieving original namespace name...")
+	if _, found := g.envOriginalNs[envName]; !found {
+		return "", fmt.Errorf("environment '%s' is not found on original namespace names map", envName)
+	}
+
+	return envName, nil
 }
 
 // NewGalaxy instantiages a new application instance.
