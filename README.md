@@ -14,6 +14,9 @@
     <a alt="CI Status" href="https://travis-ci.com/otaviof/galaxy">
         <img alt="CI Status" src="https://travis-ci.com/otaviof/galaxy.svg?branch=master">
     </a>
+    <a alt="Docker-Cloud Build Status" href="https://hub.docker.com/r/otaviof/galaxy">
+        <img alt="Docker-Cloud Build Status" src="https://img.shields.io/docker/cloud/build/otaviof/galaxy.svg">
+    </a>
 </p>
 
 # `galaxy` (WIP)
