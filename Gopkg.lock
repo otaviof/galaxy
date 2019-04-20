@@ -604,12 +604,12 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:dee7f46cd3ac8ccaf663adb8feb901f51466fded032e665c79a0b1e80a65341b"
+  digest = "1:eb8970d33ec4fbd73a4aab67458c6d2d94335120f34a9f42f902e754af8cbcca"
   name = "github.com/otaviof/vault-handler"
   packages = ["pkg/vault-handler"]
   pruneopts = "T"
-  revision = "1f76dee901d969a47a6b2562d1674e5a25419008"
-  version = "0.2.1"
+  revision = "be7c564cb044d941009992f778fd62f835b98d5e"
+  version = "0.2.2"
 
 [[projects]]
   digest = "1:f0ef3f67e144a3c491fd687cc3a82850a23ae62736ff6a2602c861afd9233ada"
