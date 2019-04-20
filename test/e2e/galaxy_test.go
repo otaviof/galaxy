@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	"k8s.io/helm/pkg/helm"
 
 	"github.com/otaviof/galaxy/pkg/galaxy"
+	vh "github.com/otaviof/vault-handler/pkg/vault-handler"
 )
 
 type helmRelease struct {
@@ -30,6 +32,7 @@ func TestGalaxy(t *testing.T) {
 	galaxy.SetLogLevel("trace")
 
 	t.Run("prepare kubernetes and helm clients", prepare)
+	t.Run("upload mock secrets to vault", uploadSecrets)
 	t.Run("DRY-RUN dev environment", dryRunDevEnv)
 	t.Run("assert nothing is deployed yet", nothingIsDeployed)
 	t.Run("apply dev environment", applyDevEnv)
@@ -50,6 +53,36 @@ func prepare(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func uploadSecrets(t *testing.T) {
+	var h *vh.Handler
+	var m *vh.Manifest
+	var err error
+
+	cfg := &vh.Config{
+		InputDir:      "../../test/vault/secrets",
+		KubeConfig:    os.Getenv("KUBECONFIG"),
+		Namespace:     "ns1-d",
+		VaultAddr:     "http://127.0.0.1:8200",
+		VaultRoleID:   os.Getenv("GALAXY_VAULT_ROLE_ID"),
+		VaultSecretID: os.Getenv("GALAXY_VAULT_SECRET_ID"),
+	}
+
+	err = cfg.Validate()
+	assert.Nil(t, err)
+
+	h, err = vh.NewHandler(cfg)
+	assert.Nil(t, err)
+
+	err = h.Authenticate()
+	assert.Nil(t, err)
+
+	m, err = vh.NewManifest("../../test/namespaces/ns1/ingress-secret.yaml")
+	assert.Nil(t, err)
+
+	err = h.Upload(m)
+	assert.Nil(t, err)
+}
+
 func bootstrap(t *testing.T, dryRun bool, namespaces string) *galaxy.Galaxy {
 	dotGalaxy, err := galaxy.NewDotGalaxy("../../test/galaxy.yaml")
 	assert.Nil(t, err)
@@ -57,6 +90,8 @@ func bootstrap(t *testing.T, dryRun bool, namespaces string) *galaxy.Galaxy {
 	cfg.DryRun = dryRun
 	cfg.Environments = EnvName
 	cfg.Namespaces = namespaces
+	cfg.VaultRoleID = os.Getenv("GALAXY_VAULT_ROLE_ID")
+	cfg.VaultSecretID = os.Getenv("GALAXY_VAULT_SECRET_ID")
 
 	g := galaxy.NewGalaxy(dotGalaxy, cfg)
 	err = g.Inspect()
