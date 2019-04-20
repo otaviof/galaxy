@@ -4,6 +4,8 @@ go:
   - 1.11.x
 install: true
 before_script:
+  - docker-compose -d
+  - .ci/bootstrap-vault.sh
   - .ci/install-minikube.sh
   - .ci/install-helm.sh
   - make dep
