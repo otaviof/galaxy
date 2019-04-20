@@ -33,12 +33,16 @@ ENV GO_DOMAIN="github.com" \
     GO_PROJECT="galaxy"
 
 ENV APP_DIR="${GOPATH}/src/${GO_DOMAIN}/${GO_GROUP}/${GO_PROJECT}" \
-    USER_UID="1111"
+    USER_UID="1111" \
+    APP_HOME="/var/lib/galaxy"
 
 RUN apk --update add bash
 COPY --from=builder ${APP_DIR}/build/${GO_PROJECT} /usr/local/bin/${GO_PROJECT}
 
-RUN adduser -D -u ${USER_UID} ${GO_PROJECT}
+RUN adduser -h ${APP_HOME} -D -u ${USER_UID} ${GO_PROJECT}
 USER ${USER_UID}
+
+VOLUME ${APP_HOME}
+WORKDIR ${APP_HOME}
 
 ENTRYPOINT [ "/usr/local/bin/galaxy" ]
