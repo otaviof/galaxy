@@ -14,9 +14,9 @@ type Landscaper struct {
 	cfg        *LandscaperConfig  // landscaper runtime configuration
 	kubeCfg    *KubernetesConfig  // kubernetes related configuration
 	env        *Environment       // environment instance
-	ctxs       []*Context         // slice of Context instances
-	kubeClient *KubeClient        // kubernetes API client
-	helmClient *HelmClient        // helm API client
+	ctxs       []*Context         // slice of context instances
+	kubeClient *KubeClient        // kubernetes api client
+	helmClient *HelmClient        // helm api client
 	fileState  ldsc.StateProvider // landscaper release file state provider
 	helmState  ldsc.StateProvider // landscaper helm state provider
 	executor   ldsc.Executor      // landscaper executor
@@ -88,7 +88,7 @@ func (l *Landscaper) Bootstrap(ns, originalNs string, dryRun bool) error {
 	return nil
 }
 
-// setup
+// setup Landscaper environment and release prefix.
 func (l *Landscaper) setup(ns, originalNs string, dryRun bool) (*ldsc.Environment, error) {
 	var releasePrefix string
 	var err error

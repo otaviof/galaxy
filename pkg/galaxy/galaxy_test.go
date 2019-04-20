@@ -1,6 +1,7 @@
 package galaxy
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,6 +17,8 @@ func TestGalaxyNew(t *testing.T) {
 	cfg.DryRun = true
 	cfg.Environments = "dev"
 	cfg.Namespaces = "ns1"
+	cfg.VaultRoleID = os.Getenv("GALAXY_VAULT_ROLE_ID")
+	cfg.VaultSecretID = os.Getenv("GALAXY_VAULT_SECRET_ID")
 	app = NewGalaxy(dotGalaxy, cfg)
 
 	assert.NotNil(t, app)
