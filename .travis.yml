@@ -5,6 +5,7 @@ go:
 install: true
 before_script:
   - docker-compose up -d
+  - .ci/install-vault.sh
   - .ci/bootstrap-vault.sh
   - .ci/install-minikube.sh
   - .ci/install-helm.sh
