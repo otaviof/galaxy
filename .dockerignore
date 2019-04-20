@@ -1,0 +1,15 @@
+.ci
+.cover*
+.env
+.galaxy*
+.git*
+.goreleaser*
+.travis*
+.vscode
+README.md
+assets
+build
+docker-compose*
+test
+vendor
+version
