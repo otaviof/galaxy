@@ -30,6 +30,8 @@ func runApplyCmd(cmd *cobra.Command, args []string) {
 func init() {
 	flags := applyCmd.PersistentFlags()
 
+	flags.Bool("skip-secrets", false, "skip handling secrets")
+
 	flags.Bool("in-cluster", false, "running inside a Kubernetes cluster")
 	flags.String("kube-config", "", "alternative kube-config path")
 	flags.String("kube-context", "", "alternative Kubernetes context")

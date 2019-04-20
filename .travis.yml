@@ -13,7 +13,7 @@ before_script:
 script:
   - export GALAXY_VAULT_ROLE_ID=$(grep ROLE_ID .env |awk -F '"' '{print $2}')
   - export GALAXY_VAULT_SECRET_ID=$(grep SECRET_ID .env |awk -F '"' '{print $2}')
-  - export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
+  - export KUBECONFIG=$(kind get kubeconfig-path --name="kind")
   - make bootstrap
   - make
   - make test

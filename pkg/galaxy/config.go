@@ -12,6 +12,7 @@ type Config struct {
 	LogLevel      string // log verboseness
 	Environments  string // target environment names, comma separated
 	Namespaces    string // target namespaces, comma separated
+	SkipSecrets   bool   // skip handling secrets
 
 	*KubernetesConfig
 	*LandscaperConfig
