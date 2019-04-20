@@ -70,6 +70,7 @@ func (g *Galaxy) Plan() error {
 func (g *Galaxy) Apply() error {
 	var e *Environment
 	var envName string
+	var v *VaultHandler
 	var err error
 
 	g.logger.Infof("DRY-RUN: '%v', Environment: '%s'", g.cfg.DryRun, g.cfg.GetEnvironments())
@@ -85,15 +86,20 @@ func (g *Galaxy) Apply() error {
 		return err
 	}
 
-	v := NewVaultHandler(g.cfg.VaultHandlerConfig, g.cfg.KubernetesConfig, g.Modified[envName])
+	if !g.cfg.SkipSecrets {
+		v = NewVaultHandler(g.cfg.VaultHandlerConfig, g.cfg.KubernetesConfig, g.Modified[envName])
+	}
+
 	l := NewLandscaper(g.cfg.LandscaperConfig, g.cfg.KubernetesConfig, e, g.Modified[envName])
 	for ns, originalNs := range g.envOriginalNs[envName] {
-		logger.Infof("Handling secrets for '%s' namespace", ns)
-		if err = v.Bootstrap(ns, g.cfg.DryRun); err != nil {
-			return err
-		}
-		if err = v.Apply(); err != nil {
-			return err
+		if !g.cfg.SkipSecrets {
+			logger.Infof("Handling secrets for '%s' namespace", ns)
+			if err = v.Bootstrap(ns, g.cfg.DryRun); err != nil {
+				return err
+			}
+			if err = v.Apply(); err != nil {
+				return err
+			}
 		}
 
 		logger.Infof("Handling namespace '%s', original name '%s'", ns, originalNs)
