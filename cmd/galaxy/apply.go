@@ -30,17 +30,23 @@ func runApplyCmd(cmd *cobra.Command, args []string) {
 func init() {
 	flags := applyCmd.PersistentFlags()
 
-	flags.String("disable", "", "actions to disable, as in \"create\", \"update\" or \"delete\"")
-	flags.String("helm-home", "${HOME}/.helm", "helm home folder path")
 	flags.Bool("in-cluster", false, "running inside a Kubernetes cluster")
 	flags.String("kube-config", "", "alternative kube-config path")
 	flags.String("kube-context", "", "alternative Kubernetes context")
-	flags.String("override-file", "", "Landscaper configuration override file")
+
+	flags.String("helm-home", "${HOME}/.helm", "helm home folder path")
 	flags.String("tiller-namespace", "kube-system", "Helm's Tiller namespace")
 	flags.Int("tiller-port", 44134, "Helm's Tiller service port")
 	flags.Int64("tiller-timeout", 30, "timeout on trying to reach tiller, in seconds")
 	flags.Bool("wait", false, "wait for resources to be ready")
 	flags.Int64("wait-timeout", 120, "timeout on waiting for resources, in seconds")
+	flags.String("disable", "", "actions to disable, as in \"create\", \"update\" or \"delete\"")
+	flags.String("override-file", "", "Landscaper configuration override file")
+
+	flags.String("vault-addr", "http://127.0.0.1:8200", "Vault address")
+	flags.String("vault-token", "", "Vault access token")
+	flags.String("vault-role-id", "", "Vault AppRole role-id")
+	flags.String("vault-secret-id", "", "Vault AppRole secret-id")
 
 	cobra.MarkFlagRequired(flags, "env")
 	rootCmd.AddCommand(applyCmd)

@@ -86,6 +86,8 @@ func NewConfig() *Config {
 			TillerTimeout:   30,
 			WaitTimeout:     60,
 		},
-		VaultHandlerConfig: &VaultHandlerConfig{},
+		VaultHandlerConfig: &VaultHandlerConfig{
+			VaultAddr: "http://127.0.0.1:8200",
+		},
 	}
 }

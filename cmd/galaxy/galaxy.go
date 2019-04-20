@@ -26,18 +26,26 @@ func configFromEnv() *galaxy.Config {
 		Environments:  viper.GetString("env"),
 		Namespaces:    viper.GetString("namespace"),
 		LogLevel:      viper.GetString("log-level"),
+		KubernetesConfig: &galaxy.KubernetesConfig{
+			InCluster:   viper.GetBool("in-cluster"),
+			KubeConfig:  viper.GetString("kube-config"),
+			KubeContext: viper.GetString("kube-context"),
+		},
 		LandscaperConfig: &galaxy.LandscaperConfig{
 			DisabledStages:   viper.GetString("disable"),
-			HelmHome:         os.ExpandEnv(viper.GetString("helm-home")),
-			InCluster:        viper.GetBool("in-cluster"),
-			KubeConfig:       viper.GetString("kube-config"),
-			KubeContext:      viper.GetString("kube-context"),
 			OverrideFile:     viper.GetString("override-file"),
+			HelmHome:         os.ExpandEnv(viper.GetString("helm-home")),
 			TillerNamespace:  viper.GetString("tiller-namespace"),
 			TillerPort:       viper.GetInt("tiller-port"),
 			TillerTimeout:    viper.GetInt64("tiller-timeout"),
 			WaitForResources: viper.GetBool("wait"),
 			WaitTimeout:      viper.GetInt64("wait-timeout"),
+		},
+		VaultHandlerConfig: &galaxy.VaultHandlerConfig{
+			VaultAddr:     viper.GetString("vault-addr"),
+			VaultToken:    viper.GetString("vault-token"),
+			VaultRoleID:   viper.GetString("vault-role-id"),
+			VaultSecretID: viper.GetString("vault-secret-id"),
 		},
 	}
 }
