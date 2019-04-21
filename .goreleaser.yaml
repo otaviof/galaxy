@@ -1,12 +1,12 @@
 ---
-project_name: vault-handler
+project_name: galaxy
 dist: ./build/dist
 
 archive:
   format: tar.gz
 
 builds:
-  - binary: vault-handler
+  - binary: galaxy
     main: ./cmd/galaxy/galaxy.go
     goos:
       - linux
