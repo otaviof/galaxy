@@ -11,8 +11,14 @@ import (
 var applyCmd = &cobra.Command{
 	Use:   "apply",
 	Run:   runApplyCmd,
-	Short: ``,
-	Long:  ``,
+	Short: `Apply environment desired state`,
+	Long: `# galaxy apply
+
+Deploy desired state to on a target environment. Apply sub-command will handle secrets, as in copying
+Vault secrets to Kubernetes cluster, and apply Landscaper releases against Helm.
+
+The steps to apply desired state consists on reading namespaces and files, validating them, and
+creating a plan that takes in consideration transformations.`,
 }
 
 func runApplyCmd(cmd *cobra.Command, args []string) {
@@ -50,7 +56,7 @@ func init() {
 	flags.String("vault-role-id", "", "Vault AppRole role-id")
 	flags.String("vault-secret-id", "", "Vault AppRole secret-id")
 
-	cobra.MarkFlagRequired(flags, "env")
+	cobra.MarkFlagRequired(flags, "environment")
 	rootCmd.AddCommand(applyCmd)
 
 	if err := viper.BindPFlags(flags); err != nil {

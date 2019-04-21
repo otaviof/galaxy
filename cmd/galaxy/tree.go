@@ -11,8 +11,7 @@ import (
 var treeCmd = &cobra.Command{
 	Use:   "tree",
 	Run:   runTreeCmd,
-	Short: "tree",
-	Long:  ``,
+	Short: "Print out Galaxy data in a tree style.",
 }
 
 func runTreeCmd(cmd *cobra.Command, args []string) {

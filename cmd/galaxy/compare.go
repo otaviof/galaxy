@@ -11,8 +11,7 @@ import (
 var compareCmd = &cobra.Command{
 	Use:   "compare",
 	Run:   runCompareCmd,
-	Short: ``,
-	Long:  ``,
+	Short: `Print out Galaxy data in a table format`,
 }
 
 func runCompareCmd(cmd *cobra.Command, args []string) {

@@ -13,8 +13,16 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "galaxy",
-	Short: ``,
-	Long:  ``,
+	Short: `Galaxy is a GitOps repository manager.`,
+	Long: `# galaxy
+
+Galaxy is a application to leverage Landscaper and Vault-Handler by offering a configurable way of
+applying releases and managing Kubernetes secrets from a GitOps type of approach.
+
+Please consider project repository to read more documentation:
+
+	https://github.com/otaviof/galaxy
+`,
 }
 
 // configFromEnv load runtime configuration from environment, which also includes command-line
@@ -90,8 +98,8 @@ func init() {
 	flags.Bool("dry-run", false, "dry-run mode")
 	flags.String("log-level", "error", "logging level")
 
-	flags.String("env", "", "filter by environments, comma separated list")
-	flags.String("namespace", "", "filter by namespaces, comma separated list")
+	flags.String("environment", "", "target environments, comma separated list")
+	flags.String("namespace", "", "target namespaces, comma separated list")
 
 	if err := viper.BindPFlags(flags); err != nil {
 		log.Fatal(err)
