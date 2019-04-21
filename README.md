@@ -21,7 +21,7 @@
 
 # `galaxy` (WIP)
 
-Galaxy is a application to reflect a given "gitops" type of repository towards a Kubernetes
+Galaxy is a application to reflect a given *"GitOps"* type of repository towards a Kubernetes
 cluster. It handles [Landscaper][landscaper] releases and [`vault-handler`][vaulthandler] manifest
 files in a single runtime, reflecting the desired state towards [Helm][helm], and copying secrets
 from [Hashicorp-Vault][vault] to Kubernetes.
@@ -38,11 +38,20 @@ You can install Galaxy via `go get`:
 go get -u github.com/otaviof/galaxy/cmd/galaxy
 ```
 
-Or use the Docker [images][dockerhub]:
+Or use the Docker [image][dockerhub]:
 
 ``` bash
 docker run --interactive --tty otaviof/galaxy:latest --help
 ```
+
+## GitOps
+
+By **GitOps** is understood having a Git repository which represents **source-of-authority** over a
+platform, and by operating this repository means reflecting those changes on the platform.
+
+Galaxy allows you to declare how your platform looks like, and by bringing simple convetions allows
+you to have a simple structure on GitOps repository, and avoid scripting in order to include,
+exclude or transform elements.
 
 ## Usage
 
@@ -74,7 +83,7 @@ galaxy:
         - ""
       transform:
         namespaceSuffix: -staging
-        releasePrefix: ${NAMESPACE_SUFFIX:1}-${NAMESPACE}-
+        releasePrefix: ${NAMESPACE_SUFFIX:1:1}-${NAMESPACE}-
     - name: production
       skipOnNamespaces:
         - ns1
@@ -97,7 +106,7 @@ And in `environments` section:
 
 - `galaxy.environments[n].name`: environment name;
 - `galaxy.environments[n].onlyOnNamespaces`: list of namespaces where this environment applies;
-- `galaxy.environments[n].skipOnNamespaces`: list of namespaces where this enviroment does not apply;
+- `galaxy.environments[n].skipOnNamespaces`: list of namespaces where this environment does not apply;
 - `galaxy.environments[n].fileSuffixes`: list of file suffixes that are applicable;
 - `galaxy.environments[n].transform.namespacePrefix`: prefix to be added on namespace name;
 - `galaxy.environments[n].transform.namespaceSuffix`: suffix to be added on namespace name;
@@ -121,7 +130,7 @@ consider:
 
 | File               | Suffixes | Applicable on Environment |
 |--------------------|----------|---------------------------|
-| `release.yaml`     | ` `      | `staging`, `production`   |
+| `release.yaml`     | (none)   | `staging`, `production`   |
 | `release@s@p.yaml` | `s`, `p` | `staging`, `production`   |
 | `release@s.yaml`   | `s`      | `staging`                 |
 | `release@p.yaml`   | `p`      | `production`              |
@@ -139,19 +148,28 @@ In other hand, `ns2` is only deployed in `production` environment and original n
 
 ### Variable Interpolation
 
-The following variables can be used for interpolation:
+The following variables can be used for interpolation. They are filled with the current environment
+and namespace that is being processed at the time.
 
 - `RELEASE_PREFIX`: having `galaxy.environments[n].transform.releasePrefix` value;
 - `NAMESPACE_PREFIX`: having `galaxy.environments[n].transform.namespacePrefix` value;
 - `NAMESPACE_SUFFIX`: having `galaxy.environments[n].transform.namespaceSuffix` value;
 - `NAMESPACE`: current namespace name, before namespace transformations;
 
-### Command-Line
+More transformations can be done with the variables, by using [expansion][interpolateexp]
+expressions supported.
+
+## Command-Line
+
+All parameters can be expressed as environment variables by following a simple convention. For
+example, the parameter `--environment` becomes `GALAXY_ENVIRONMENT`, where we add a prefix `GALAXY_`
+followed by parameter name capitalized. In case of dashes (`-`) they must become underscore (`_`) in
+environment.
 
 On command-line `galaxy` is the base-command, where you must choose sub-commands to call. They are
 listed as the next documentation sections.
 
-#### `compare`
+### `compare`
 
 Compare display releases as table, you can include `--environments` or `--namespaces` in order to
 narrow down results. For instance:
@@ -165,7 +183,7 @@ staging      ns2-staging  release  s-ns2-app1:0.0.1   stable/grafana:3.3.0      
 production   ns2          release  p-ns2-app1:0.0.1   stable/grafana:3.3.0              test/namespaces/ns2/app1.yaml
 ```
 
-#### `tree`
+### `tree`
 
 Galaxy data can also be displayed as a tree, with the same narrowing arguments valied on `compare`.
 For instance:
@@ -188,9 +206,9 @@ $ galaxy tree
             └── p-ns2-app1 (v0.0.1)
 ```
 
-#### `apply`
+### `apply`
 
-To reflect changes in Kubernetes run `apply` sub-command. For instnace:
+To reflect changes in Kubernetes run `apply` sub-command. For instance:
 
 ```
 $ galaxy apply --dry-run --environment staging
@@ -203,30 +221,38 @@ Vault-Handler related logging in standard output.
 
 In order to work on this project, you need the following dependencies in place:
 
-- **GNU/Make**: to run project tasks;
-- **Kubernetes**: minikube or a real cluster available;
-- **Helm**: Client is configured and Helm's Tiller is deployed in the cluster;
-- **Vault**: Hashcorp-Vault server;
+- [**GNU/Make**][gnumake]: to run project tasks;
+- [**Dep**][dep]: Golang Dep, `vendor` folder manager;
+- [**Kubernetes**][kubernetes]: minikube or a real cluster available;
+- [**Docker**][docker]: Docker up and running;
+- [**Helm**][helm]: Client is configured and Helm's Tiller is deployed in the cluster;
+- [**Vault**][vault]: Hashcorp-Vault server;
 
 During CI the following scripts are employed:
 
-- `.ci/bootstrap-vault.sh`: applies initial configuration and start K/V store;
-- `.ci/install-helm.sh`: install Tiller and configure local Helm client;
-- `.ci/install-minikube.sh`: install Kubernetes via KinD;
-- `.ci/install-vault.sh`: install Vault in command-line;
+- [`.ci/bootstrap-vault.sh`](.ci/bootstrap-vault.sh): initial configuration and start K/V store;
+- [`.ci/install-helm.sh`](.ci/install-helm.sh): install Tiller and configure local Helm client;
+- [`.ci/install-minikube.sh`](.ci/install-minikube.sh): install Kubernetes via [KinD][kind];
+- [`.ci/install-vault.sh`](.ci/install-vault.sh): install Vault in command-line;
 
-This project uses GNU/Make to automake workflow tasks, the most important are:
+This project is using `make` to automake workflow tasks, the most important tasks are:
 
 ``` bash
 make bootstrap      # populate vendor folder
 make                # build project
-make test           # run unit and integration tests
+make test           # run unit/integration tests
 make integration    # run end-to-end testing
 ```
 
 
-[landscaper]: https://github.com/Eneco/landscaper
-[helm]: https://github.com/kubernetes/helm
-[vaulthandler]: https://github.com/otaviof/vault-handler
-[vault]: https://www.vaultproject.io
+[dep]: https://github.com/golang/dep
+[docker]: https://docker.io
 [dockerhub]: https://hub.docker.com/r/otaviof/galaxy
+[gnumake]: https://www.gnu.org/software/make
+[helm]: https://github.com/kubernetes/helm
+[interpolateexp]: https://github.com/buildkite/interpolate#supported-expansions
+[kind]: https://github.com/kubernetes-sigs/kind
+[kubernetes]: https://kubernetes.io
+[landscaper]: https://github.com/Eneco/landscaper
+[vault]: https://www.vaultproject.io
+[vaulthandler]: https://github.com/otaviof/vault-handler
