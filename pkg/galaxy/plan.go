@@ -149,7 +149,7 @@ func (p *Plan) skipFile(file string) (bool, error) {
 		return false, err
 	}
 
-	res := suffixesRe.FindStringSubmatch(file)
+	res := suffixesRe.FindAllString(file, -1)
 
 	// no suffixes are found and empty suffixes are allowed
 	if len(res) == 0 && stringSliceContains(p.env.FileSuffixes, "") {
