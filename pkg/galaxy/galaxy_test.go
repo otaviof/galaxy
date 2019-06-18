@@ -17,6 +17,7 @@ func TestGalaxyNew(t *testing.T) {
 	cfg.Environments = "dev"
 	cfg.Namespaces = "ns1"
 	cfg.SkipSecrets = true
+	cfg.ForceColors = true
 	app = NewGalaxy(dotGalaxy, cfg)
 
 	assert.NotNil(t, app)

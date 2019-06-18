@@ -10,6 +10,7 @@ type Config struct {
 	DotGalaxyPath string // path to dot-galaxy file
 	DryRun        bool   // dry-run flag
 	LogLevel      string // log verboseness
+	ForceColors   bool   // force tty colors on output
 	Environments  string // target environment names, comma separated
 	Namespaces    string // target namespaces, comma separated
 	SkipSecrets   bool   // skip handling secrets

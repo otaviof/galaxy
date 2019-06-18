@@ -37,7 +37,7 @@ func init() {
 	flags := applyCmd.PersistentFlags()
 
 	flags.Bool("skip-secrets", false, "skip handling secrets")
-
+	flags.Bool("force-colors", false, "force tty colors on output")
 	flags.Bool("in-cluster", false, "running inside a Kubernetes cluster")
 	flags.String("kube-config", "", "alternative kube-config path")
 	flags.String("kube-context", "", "alternative Kubernetes context")
