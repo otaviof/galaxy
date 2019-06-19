@@ -31,7 +31,7 @@ func configFromEnv() *galaxy.Config {
 	return &galaxy.Config{
 		DotGalaxyPath: viper.GetString("config"),
 		DryRun:        viper.GetBool("dry-run"),
-		Environments:  viper.GetString("env"),
+		Environments:  viper.GetString("environment"),
 		Namespaces:    viper.GetString("namespace"),
 		LogLevel:      viper.GetString("log-level"),
 		SkipSecrets:   viper.GetBool("skip-secrets"),
