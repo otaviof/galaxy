@@ -34,7 +34,7 @@ func configFromEnv() *galaxy.Config {
 		Environments:  viper.GetString("environment"),
 		Namespaces:    viper.GetString("namespace"),
 		LogLevel:      viper.GetString("log-level"),
-		ForceColors:   viper.GetBool("force-colors"),
+		Raw:           viper.GetBool("raw"),
 		SkipSecrets:   viper.GetBool("skip-secrets"),
 		KubernetesConfig: &galaxy.KubernetesConfig{
 			InCluster:   viper.GetBool("in-cluster"),

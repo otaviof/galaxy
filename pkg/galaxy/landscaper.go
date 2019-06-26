@@ -155,15 +155,13 @@ func (l *Landscaper) loadKubeClient() error {
 // NewLandscaper instance a new Landscaper object.
 func NewLandscaper(
 	cfg *LandscaperConfig, kubeCfg *KubernetesConfig, env *Environment, ctxs []*Context,
-	forceColors bool) *Landscaper {
+	raw bool) *Landscaper {
 
-	if forceColors {
-		log.SetFormatter(&log.TextFormatter{
-			DisableColors: false,
-			FullTimestamp: true,
-			ForceColors:   true,
-		})
-	}
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors: raw,
+		FullTimestamp: true,
+		ForceColors:   raw,
+	})
 
 	return &Landscaper{
 		logger:  log.WithField("type", "landscaper"),
