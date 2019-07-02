@@ -90,7 +90,7 @@ func (g *Galaxy) Apply() error {
 		v = NewVaultHandler(g.cfg.VaultHandlerConfig, g.cfg.KubernetesConfig, g.Modified[envName])
 	}
 
-	l := NewLandscaper(g.cfg.LandscaperConfig, g.cfg.KubernetesConfig, e, g.Modified[envName])
+	l := NewLandscaper(g.cfg.LandscaperConfig, g.cfg.KubernetesConfig, e, g.Modified[envName], g.cfg.Raw)
 	for ns, originalNs := range g.envOriginalNs[envName] {
 		if !g.cfg.SkipSecrets {
 			logger.Infof("Handling secrets for '%s' namespace", ns)

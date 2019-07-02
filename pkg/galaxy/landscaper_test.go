@@ -17,7 +17,7 @@ func TestLandscaperNewLandscaper(t *testing.T) {
 	env, _ := dotGalaxy.GetEnvironment("dev")
 
 	cfg := NewConfig()
-	landscaper = NewLandscaper(cfg.LandscaperConfig, cfg.KubernetesConfig, env, g.Modified["dev"])
+	landscaper = NewLandscaper(cfg.LandscaperConfig, cfg.KubernetesConfig, env, g.Modified["dev"], cfg.Raw)
 }
 
 func TestLandscaperBootstrap(t *testing.T) {
