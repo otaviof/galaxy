@@ -160,7 +160,7 @@ func NewLandscaper(
 	log.SetFormatter(&log.TextFormatter{
 		DisableColors: raw,
 		FullTimestamp: true,
-		ForceColors:   raw,
+		ForceColors:   !raw,
 	})
 
 	return &Landscaper{
