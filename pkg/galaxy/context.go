@@ -113,7 +113,7 @@ func (c *Context) AddFile(ns, file string) error {
 	}
 	logger.Debugf("Error on parsing file as Vault-Handler's: '%s'", err)
 
-	return fmt.Errorf("unable to parse file as landscaper release or vault-handler manifest")
+	return fmt.Errorf("unable to parse file '%s' as landscaper release or vault-handler manifest", file)
 }
 
 // RenameReleases based on prefix and suffix, rename the existing releases.
