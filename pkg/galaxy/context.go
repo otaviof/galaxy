@@ -21,9 +21,9 @@ type Context struct {
 
 // Release binds together a file and a Landscaper component
 type Release struct {
-	Namespace string          // release namespace
-	File      string          // release file path
-	Component *ldsc.Component // Landscaper component
+	Namespace string     // release namespace
+	File      string     // release file path
+	Component *Component // Landscaper component
 }
 
 // SecretManifest vault-handler manifest to copy secrets from Vault to Kubernetes.
@@ -38,6 +38,18 @@ type ReleaseRenamer func(ns, name string) (string, error)
 
 // NamespaceRenamer method to rename namespaces in this context
 type NamespaceRenamer func(ns string) string
+
+// Component contains information about the release, configuration and secrets of a component
+type Component struct {
+	Name          string              `json:"name" validate:"nonzero,max=51"`
+	Namespace     string              `json:"namespace"`
+	Release       *ldsc.Release       `json:"release" validate:"nonzero"`
+	Configuration ldsc.Configuration  `json:"configuration"`
+	Environments  ldsc.Configurations `json:"environments"`
+	SecretsRaw    interface{}         `json:"secrets" yaml:"secrets"`
+	SecretNames   ldsc.SecretNames    `json:"-"`
+	SecretValues  ldsc.SecretValues   `json:"-"`
+}
 
 // InspectDir look for files with informed extensions.
 func (c *Context) InspectDir(ns string, dirPath string, exts []string) error {
@@ -73,7 +85,7 @@ func (c *Context) InspectDir(ns string, dirPath string, exts []string) error {
 // AddFile as Landscaper release or Vault-Handler secret manifest. It will try to parse payload first
 // as a Landscaper file, and if on errors, it tries as a secret manifest.
 func (c *Context) AddFile(ns, file string) error {
-	var component *ldsc.Component
+	var component *Component
 	var manifest *vh.Manifest
 	var err error
 
